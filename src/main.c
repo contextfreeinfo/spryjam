@@ -9,6 +9,7 @@
 #include "hardware/vreg.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "audio.h"
@@ -116,6 +117,11 @@ static void generate_audio(void)
 // Scanline Callback (runs on Core 1)
 // ============================================================================
 
+#define spry_bufferWidth 320
+#define spry_bufferHeight 180
+
+unsigned char spry_buffer[spry_bufferWidth * spry_bufferHeight] = {0};
+
 static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t active_line, uint32_t *dst)
 {
     (void)v_scanline;
@@ -179,6 +185,12 @@ static void update_box(void)
     box_y = y;
 }
 
+static void __attribute__((optimize("O0"))) spini(int max, int step) {
+    for (int i = 0; i < max; i += step) {
+        // pass
+    }
+}
+
 int main(void)
 {
 #ifdef VIDEO_MODE_1280x720
@@ -229,6 +241,7 @@ int main(void)
     // Main loop - animation + audio
     uint32_t last_frame = 0;
     bool led_state = false;
+    int blinkCount = 0;
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -256,6 +269,20 @@ int main(void)
         if ((video_frame_count % 30) == 0) {
             led_state = !led_state;
             gpio_put(PICO_DEFAULT_LED_PIN, led_state);
+            if (led_state) {
+                printf("Blink %d at %d\n", blinkCount, video_frame_count);
+                blinkCount += 1;
+            }
+        }
+
+        // Input.
+        int c = stdio_getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT) {
+            printf("Key: %d\n", c);
+            absolute_time_t start = get_absolute_time();
+            spini(10000000, 1);
+            int64_t diff = absolute_time_diff_us(start, get_absolute_time());
+            printf("Time: %f\n", diff * 1e-6);
         }
     }
 

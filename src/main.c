@@ -122,15 +122,35 @@ static void generate_audio(void)
 
 uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth] = {0};
 
-static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t active_line, uint32_t *dst)
-{
+static float lineCompute = 0;
+static float linePeriod = 0;
+
+#define spry_timeLines 0
+
+static void __scratch_x("") scanline_callback(
+    uint32_t v_scanline, uint32_t active_line, uint32_t *dst
+) {
     (void)v_scanline;
+#if spry_timeLines
+    // Line period.
+    static absolute_time_t lastStart = 0;
+    if (!lastStart) {
+        lastStart = get_absolute_time();
+    }
+    static absolute_time_t start;
+    float retention = 0.9;
+    start = get_absolute_time();
+    float currentPeriod = absolute_time_diff_us(lastStart, start);
+    lastStart = start;
+    linePeriod = retention * linePeriod + (1.0 - retention) * currentPeriod;
+#endif
+    // Scale vertical and check bounds.
     active_line /= 4;
     if (active_line < 0 || active_line >= spry_bufferHeight) {
         // TODO Does this ever happen?
         return;
     }
-    // Scale and translate each scan line.
+    // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
     uint8_t* line = spry_buffer[active_line];
     for (int j = 0; j < spry_bufferWidth; j += 1) {
@@ -148,40 +168,12 @@ static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t acti
         *(dst++) = rgb565Rep;
         *(dst++) = rgb565Rep;
     }
-
-    // // Read current box position
-    // int bx = box_x;
-    // int by = box_y;
-
-    // uint32_t bg = BG_COLOR | (BG_COLOR << 16);
-    // uint32_t box = BOX_COLOR | (BOX_COLOR << 16); //
-
-    // // Check if this line intersects the box vertically
-    // if (fb_line >= by && fb_line < by + BOX_SIZE) {
-    //     // Three regions: before box, box, after box
-    //     int i = 0;
-
-    //     // Region 1: before box
-    //     // Note: iterating by 2 pixels at a time (1 uint32_t)
-    //     for (; i < bx / 2; i++) {
-    //         dst[i] = bg;
-    //     }
-
-    //     // Region 2: box
-    //     for (; i < (bx + BOX_SIZE) / 2 && i < FRAME_WIDTH / 2; i++) {
-    //         dst[i] = box;
-    //     }
-
-    //     // Region 3: after box
-    //     for (; i < FRAME_WIDTH / 2; i++) {
-    //         dst[i] = bg;
-    //     }
-    // } else {
-    //     // Fast path: entire line is background
-    //     for (int i = 0; i < FRAME_WIDTH / 2; i++) {
-    //         dst[i] = bg;
-    //     }
-    // }
+#if spry_timeLines
+    // Compute time.
+    absolute_time_t end = get_absolute_time();
+    float currentCompute = absolute_time_diff_us(start, end);
+    lineCompute = retention * lineCompute + (1.0 - retention) * currentCompute;
+#endif
 }
 
 // ============================================================================
@@ -266,7 +258,7 @@ int main(void)
 
     for (int i = 0; i < spry_bufferHeight; i += 1) {
         for (int j = 0; j < spry_bufferWidth; j += 1) {
-            spry_buffer[i][j] = i == j ? 0xff : 0x00;
+            spry_buffer[i][j] = i == j ? 0xb6 : 0x49;
         }
     }
 
@@ -297,7 +289,13 @@ int main(void)
             led_state = !led_state;
             gpio_put(PICO_DEFAULT_LED_PIN, led_state);
             if (led_state) {
-                printf("Blink %d at %d\n", blinkCount, video_frame_count);
+                printf(
+                    "Blink %d at %d: %f / %f\n",
+                    blinkCount,
+                    video_frame_count,
+                    lineCompute,
+                    linePeriod
+                );
                 blinkCount += 1;
             }
         }

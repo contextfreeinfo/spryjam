@@ -120,47 +120,68 @@ static void generate_audio(void)
 #define spry_bufferWidth 320
 #define spry_bufferHeight 180
 
-unsigned char spry_buffer[spry_bufferWidth * spry_bufferHeight] = {0};
+uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth] = {0};
 
 static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t active_line, uint32_t *dst)
 {
     (void)v_scanline;
-
-    int fb_line = active_line;
-
-    // Read current box position
-    int bx = box_x;
-    int by = box_y;
-
-    uint32_t bg = BG_COLOR | (BG_COLOR << 16);
-    uint32_t box = BOX_COLOR | (BOX_COLOR << 16);
-
-    // Check if this line intersects the box vertically
-    if (fb_line >= by && fb_line < by + BOX_SIZE) {
-        // Three regions: before box, box, after box
-        int i = 0;
-
-        // Region 1: before box
-        // Note: iterating by 2 pixels at a time (1 uint32_t)
-        for (; i < bx / 2; i++) {
-            dst[i] = bg;
-        }
-
-        // Region 2: box
-        for (; i < (bx + BOX_SIZE) / 2 && i < FRAME_WIDTH / 2; i++) {
-            dst[i] = box;
-        }
-
-        // Region 3: after box
-        for (; i < FRAME_WIDTH / 2; i++) {
-            dst[i] = bg;
-        }
-    } else {
-        // Fast path: entire line is background
-        for (int i = 0; i < FRAME_WIDTH / 2; i++) {
-            dst[i] = bg;
-        }
+    active_line /= 4;
+    if (active_line < 0 || active_line >= spry_bufferHeight) {
+        // TODO Does this ever happen?
+        return;
     }
+    // Scale and translate each scan line.
+    // TODO Save each translation for 4 lines?
+    uint8_t* line = spry_buffer[active_line];
+    for (int j = 0; j < spry_bufferWidth; j += 1) {
+        // Convert rgb332 to rgb565.
+        uint8_t rgb332 = line[j];
+        uint8_t r3 = (rgb332 >> 5) | 0x07;
+        uint8_t g3 = (rgb332 >> 2) | 0x07;
+        uint8_t b2 = rgb332 & 0x03;
+        uint16_t r5 = (r3 << 2) | (r3 >> 1);
+        uint16_t g6 = (g3 << 3) | g3;
+        uint16_t b5 = (b2 << 3) | (b2 << 1) | (b2 >> 1);
+        uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+        // Repeat for two pixels, then repeat for 4 total.
+        uint32_t rgb565Rep = (rgb565 << 16) | rgb565;
+        *(dst++) = rgb565Rep;
+        *(dst++) = rgb565Rep;
+    }
+
+    // // Read current box position
+    // int bx = box_x;
+    // int by = box_y;
+
+    // uint32_t bg = BG_COLOR | (BG_COLOR << 16);
+    // uint32_t box = BOX_COLOR | (BOX_COLOR << 16); //
+
+    // // Check if this line intersects the box vertically
+    // if (fb_line >= by && fb_line < by + BOX_SIZE) {
+    //     // Three regions: before box, box, after box
+    //     int i = 0;
+
+    //     // Region 1: before box
+    //     // Note: iterating by 2 pixels at a time (1 uint32_t)
+    //     for (; i < bx / 2; i++) {
+    //         dst[i] = bg;
+    //     }
+
+    //     // Region 2: box
+    //     for (; i < (bx + BOX_SIZE) / 2 && i < FRAME_WIDTH / 2; i++) {
+    //         dst[i] = box;
+    //     }
+
+    //     // Region 3: after box
+    //     for (; i < FRAME_WIDTH / 2; i++) {
+    //         dst[i] = bg;
+    //     }
+    // } else {
+    //     // Fast path: entire line is background
+    //     for (int i = 0; i < FRAME_WIDTH / 2; i++) {
+    //         dst[i] = bg;
+    //     }
+    // }
 }
 
 // ============================================================================
@@ -243,6 +264,12 @@ int main(void)
     bool led_state = false;
     int blinkCount = 0;
 
+    for (int i = 0; i < spry_bufferHeight; i += 1) {
+        for (int j = 0; j < spry_bufferWidth; j += 1) {
+            spry_buffer[i][j] = i == j ? 0xff : 0x00;
+        }
+    }
+
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
         // Keep audio buffer fed
@@ -278,7 +305,7 @@ int main(void)
         // Input.
         int c = stdio_getchar_timeout_us(0);
         if (c != PICO_ERROR_TIMEOUT) {
-            printf("Key: %d\n", c);
+            printf("Key: %d %zu %d\n", c, sizeof(spry_buffer), spry_buffer[c][50]);
             absolute_time_t start = get_absolute_time();
             spini(10000000, 1);
             int64_t diff = absolute_time_diff_us(start, get_absolute_time());

@@ -136,8 +136,8 @@ static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t acti
     for (int j = 0; j < spry_bufferWidth; j += 1) {
         // Convert rgb332 to rgb565.
         uint8_t rgb332 = line[j];
-        uint8_t r3 = (rgb332 >> 5) | 0x07;
-        uint8_t g3 = (rgb332 >> 2) | 0x07;
+        uint8_t r3 = (rgb332 >> 5) & 0x07;
+        uint8_t g3 = (rgb332 >> 2) & 0x07;
         uint8_t b2 = rgb332 & 0x03;
         uint16_t r5 = (r3 << 2) | (r3 >> 1);
         uint16_t g6 = (g3 << 3) | g3;

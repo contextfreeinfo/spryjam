@@ -1,4 +1,44 @@
-Some frame timings:
+## Info
+
+```sh
+build $ arm-none-eabi-size spryjam.elf
+   text	   data	    bss	    dec	    hex	filename
+  44108	      0	 108144	 152252	  252bc	spryjam.elf
+build $ arm-none-eabi-size -A spryjam.elf
+spryjam.elf  :
+section                 size        addr
+.flashtext               496   268435456
+.rodata                    0   268435952
+.ARM.exidx                 8   268435952
+.binary_info              32   268435960
+.ram_vector_table        272   536870912
+.uninitialized_data        0   536871184
+.text                  32936   536871184
+.data                   5344   536904120
+.tdata                     0   536909464
+.tbss                      0   536909464
+.bss                  105824   536909464
+.heap                   2048   537015288
+.scratch_x              1176   537395200
+.scratch_y                 0   537399296
+.stack1_dummy           2048   537396376
+.stack_dummy            2048   537399296
+.flash_end                20   268475448
+.ARM.attributes           52           0
+.comment                  38           0
+.debug_info           246208           0
+.debug_abbrev          44339           0
+.debug_loclists       120044           0
+.debug_aranges          5936           0
+.debug_rnglists        23658           0
+.debug_line           148768           0
+.debug_str             47958           0
+.debug_frame           14984           0
+.debug_line_str          593           0
+Total                 804830
+```
+
+## Some frame timings
 
 ```
 Blink 80 at 4830: 17.974300 / 19.212063

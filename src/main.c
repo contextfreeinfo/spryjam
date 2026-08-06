@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "audio.h"
@@ -204,6 +205,17 @@ static void __attribute__((optimize("O0"))) spini(int max, int step) {
     }
 }
 
+extern char __data_start__[];
+extern char __data_end__[];
+extern char __bss_start__[];
+extern char __bss_end__[];
+extern char __ram_text_start__[];
+extern char __ram_text_end__[];
+extern char __end__[];
+extern char __HeapLimit[];
+extern char __StackLimit[];
+extern char __StackTop[];
+
 int main(void)
 {
 #ifdef VIDEO_MODE_1280x720
@@ -289,12 +301,20 @@ int main(void)
             led_state = !led_state;
             gpio_put(PICO_DEFAULT_LED_PIN, led_state);
             if (led_state) {
+                uint32_t ramStart = 0x20000000;
+                uint32_t static_ram_used = (uint32_t)__end__ - ramStart;
+                uint32_t ramText =
+                    (uint32_t)(__ram_text_end__ - __ram_text_start__);
+                uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
+                uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
                 printf(
-                    "Blink %d at %d: %f / %f\n",
+                    "Blink %d at %d: %f / %f, %d vs %d\n",
                     blinkCount,
                     video_frame_count,
                     lineCompute,
-                    linePeriod
+                    linePeriod,
+                    static_ram_used,
+                    ramText + ramData + ramBss
                 );
                 blinkCount += 1;
             }

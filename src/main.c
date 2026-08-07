@@ -6,6 +6,7 @@
 #include "pico/stdlib.h"
 
 #include "hardware/clocks.h"
+#include "hardware/dma.h"
 #include "hardware/vreg.h"
 
 #include <math.h>
@@ -121,7 +122,35 @@ static void generate_audio(void)
 #define spry_bufferWidth 320
 #define spry_bufferHeight 180
 
-uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth] = {0};
+uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth]
+    __attribute__((aligned(4))) = {0};
+uint8_t spry_bufferVid[spry_bufferHeight][spry_bufferWidth]
+    __attribute__((aligned(4))) = {0};
+
+int spry_bufferDmaChan;
+
+void __not_in_flash_func(spry_vsyncCallback)(void) {
+    dma_channel_set_read_addr(spry_bufferDmaChan, spry_buffer, false);
+    dma_channel_set_write_addr(spry_bufferDmaChan, spry_bufferVid, true);
+}
+
+void spry_initCopyBuffer(void) {
+    spry_bufferDmaChan = dma_claim_unused_channel(true);
+    dma_channel_config_t conf =
+        dma_channel_get_default_config(spry_bufferDmaChan);
+    channel_config_set_transfer_data_size(&conf, DMA_SIZE_32);
+    channel_config_set_read_increment(&conf, true);
+    channel_config_set_write_increment(&conf, true);
+    channel_config_set_dreq(&conf, DREQ_FORCE);
+    dma_channel_configure(
+        spry_bufferDmaChan,
+        &conf,
+        spry_bufferVid,
+        spry_buffer,
+        sizeof(spry_buffer) / 4,
+        false
+    );
+}
 
 static float lineCompute = 0;
 static float linePeriod = 0;
@@ -153,7 +182,7 @@ static void __scratch_x("") scanline_callback(
     }
     // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
-    uint8_t* line = spry_buffer[active_line];
+    uint8_t* line = spry_bufferVid[active_line];
     for (int j = 0; j < spry_bufferWidth; j += 1) {
         // Convert rgb332 to rgb565.
         uint8_t rgb332 = line[j];
@@ -235,6 +264,7 @@ int main(void)
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
+    // Maybe because of clock hz change above?
     sleep_ms(1000);
 
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -254,6 +284,9 @@ int main(void)
     // Register scanline callback
     video_output_set_scanline_callback(scanline_callback);
 
+    spry_initCopyBuffer();
+    video_output_set_vsync_callback(spry_vsyncCallback);
+
 #ifndef BOUNCING_BOX_DVI_ONLY
     // Pre-fill audio buffer
     generate_audio();
@@ -267,12 +300,6 @@ int main(void)
     uint32_t last_frame = 0;
     bool led_state = false;
     int blinkCount = 0;
-
-    for (int i = 0; i < spry_bufferHeight; i += 1) {
-        for (int j = 0; j < spry_bufferWidth; j += 1) {
-            spry_buffer[i][j] = i == j ? 0xb6 : 0x49;
-        }
-    }
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -295,6 +322,18 @@ int main(void)
         // Advance melody (one note step per frame)
         advance_melody();
 #endif
+
+        // Animate at 30 fps.
+        if ((video_frame_count % 2) == 0) {
+            int offset = video_frame_count % spry_bufferWidth;
+            for (int i = 0; i < spry_bufferHeight; i += 1) {
+                for (int j = 0; j < spry_bufferWidth; j += 1) {
+                    int offsetJ =
+                        (j + spry_bufferWidth - offset) % spry_bufferWidth;
+                    spry_buffer[i][j] = i == offsetJ ? 0xb6 : 0x49;
+                }
+            }
+        }
 
         // LED heartbeat
         if ((video_frame_count % 30) == 0) {

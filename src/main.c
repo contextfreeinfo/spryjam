@@ -130,8 +130,13 @@ uint8_t spry_bufferVid[spry_bufferHeight][spry_bufferWidth]
 int spry_bufferDmaChan;
 
 void __not_in_flash_func(spry_vsyncCallback)(void) {
+    static bool needed = false;
+    // TODO Just run at 30 Hz?
+    needed = !needed;
+    // if (!needed) return;
     dma_channel_set_read_addr(spry_bufferDmaChan, spry_buffer, false);
     dma_channel_set_write_addr(spry_bufferDmaChan, spry_bufferVid, true);
+    // TODO Signal when write finished.
 }
 
 void spry_initCopyBuffer(void) {
@@ -264,8 +269,8 @@ int main(void)
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    // Maybe because of clock hz change above?
-    sleep_ms(1000);
+    // Maybe because of clock hz change above vs usb programming?
+    sleep_ms(200);
 
 #ifndef BOUNCING_BOX_DVI_ONLY
     // Initialize audio
@@ -323,16 +328,22 @@ int main(void)
         advance_melody();
 #endif
 
+        // TODO Move to draw function. Call only after framebuffer copy.
         // Animate at 30 fps.
-        if ((video_frame_count % 2) == 0) {
+        // TODO Measure drawing time.
+        int drawTime = 0;
+        if ((video_frame_count % 1) == 0) {
+            absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
+            uint8_t* pixel = spry_buffer[0];
             for (int i = 0; i < spry_bufferHeight; i += 1) {
-                for (int j = 0; j < spry_bufferWidth; j += 1) {
+                for (int j = 0; j < spry_bufferWidth; j += 1, pixel += 1) {
                     int offsetJ =
                         (j + spry_bufferWidth - offset) % spry_bufferWidth;
-                    spry_buffer[i][j] = i == offsetJ ? 0xb6 : 0x49;
+                    *pixel = i == offsetJ ? 0xb6 : 0x49;
                 }
             }
+            drawTime = absolute_time_diff_us(start, get_absolute_time());
         }
 
         // LED heartbeat
@@ -347,13 +358,14 @@ int main(void)
                 uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
                 uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
                 printf(
-                    "Blink %d at %d: %f / %f, %d vs %d\n",
+                    "Blink %d at %d: %f / %f, %d vs %d, %d\n",
                     blinkCount,
                     video_frame_count,
                     lineCompute,
                     linePeriod,
                     static_ram_used,
-                    ramText + ramData + ramBss
+                    ramText + ramData + ramBss,
+                    drawTime
                 );
                 blinkCount += 1;
             }

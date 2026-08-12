@@ -15,6 +15,8 @@
 #include <string.h>
 
 #include "audio.h"
+#include "font.h"
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -420,7 +422,7 @@ int main(void) {
         last_frame = video_frame_count;
 
         // Update animation
-        update_box();
+        // update_box();
 
 #ifndef BOUNCING_BOX_DVI_ONLY
         // Advance melody (one note step per frame)

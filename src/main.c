@@ -191,28 +191,23 @@ static void __scratch_x("") scanline_callback_tom(
     // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
     // int i = 0;
-    uint8_t* src = spry_bufferVid[active_line];
-    uint8_t* srcStart = src + 40;
-    dst += 20;
-    uint8_t* lineEnd = src + 280; // (spry_bufferWidth * 3 / 4);
+    uint32_t* src = (uint32_t*)spry_bufferVid[active_line];
+    uint32_t* lineEnd = src + (spry_bufferWidth / 4);
     while (src < lineEnd) {
-        // Convert rgb332 to rgb565.
-        uint8_t rgb332 = *(src++);
-        // i += 1;
-        // uint8_t r3 = (rgb332 >> 5) & 0x07;
-        // uint8_t g3 = (rgb332 >> 2) & 0x07;
-        // uint8_t b2 = rgb332 & 0x03;
-        // uint16_t r5 = (r3 << 2) | (r3 >> 1);
-        // uint16_t g6 = (g3 << 3) | g3;
-        // uint16_t b5 = (b2 << 3) | (b2 << 1) | (b2 >> 1);
-        // uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
-        // uint16_t rgb565 = rgb332 > 0x7f ? 0xffff : 0x0000;
-        // uint16_t rgb565 = spry_palette[i & 1];
-        uint16_t rgb565 = spry_palette[rgb332];
-        // Repeat for two pixels, then repeat for 4 total.
-        uint32_t rgb565Rep = (rgb565 << 16) | rgb565;
-        *(dst++) = rgb565Rep;
-        // *(dst++) = rgb565Rep;
+        uint32_t bytes = *(src++);
+        uint8_t byte0 = bytes & 0xff;
+        uint8_t byte1 = (bytes >> 8) & 0xff;
+        uint8_t byte2 = (bytes >> 16) & 0xff;
+        uint8_t byte3 = bytes >> 24;
+        uint16_t color0 = spry_palette[byte0];
+        uint16_t color1 = spry_palette[byte1];
+        uint16_t color2 = spry_palette[byte2];
+        uint16_t color3 = spry_palette[byte3];
+        dst[0] = (color0 << 16) | color0;
+        dst[1] = (color1 << 16) | color1;
+        dst[2] = (color2 << 16) | color2;
+        dst[3] = (color3 << 16) | color3;
+        dst += 4;
     }
 #if spry_timeLines
     // Compute time.
@@ -373,7 +368,7 @@ int main(void) {
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
     // Maybe because of clock hz change above vs usb programming?
-    sleep_ms(200);
+    // sleep_ms(200);
 
 #ifndef BOUNCING_BOX_DVI_ONLY
     // Initialize audio

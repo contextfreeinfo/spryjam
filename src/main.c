@@ -7,7 +7,9 @@
 
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
+#include "hardware/structs/qmi.h"
 #include "hardware/vreg.h"
+#include "hardware/xip_cache.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -250,8 +252,35 @@ extern char __HeapLimit[];
 extern char __StackLimit[];
 extern char __StackTop[];
 
-int main(void)
-{
+void __not_in_flash_func(spry_fix_timing)(void) {
+    // Magic timing.
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+    uint32_t clkdiv = (sys_hz + 92999999u) / 93000000u;
+    // 320MHz -> 4, 372MHz -> 4, 126MHz -> 2.
+    if (clkdiv < 2) clkdiv = 2;
+    // CS-low must stay under tCEM (8us); CS-high must exceed tCPH (18ns).
+    uint64_t period_fs = 1000000000000000ull / sys_hz;
+    uint32_t max_select =
+        (uint32_t)(((8000ull * 1000000ull) / 64ull) / period_fs);
+    uint32_t min_desel =
+        (uint32_t)((18ull * 1000000ull + period_fs - 1) / period_fs);
+    uint32_t half_div = (clkdiv + 1) / 2;
+    min_desel = (min_desel > half_div) ? (min_desel - half_div) : 1u;
+    if (max_select > 0x3F) max_select = 0x3F; // 6-bit field
+    if (min_desel > 0x1F) min_desel = 0x1F; // 5-bit field
+    // Set timing.
+    qmi_hw->m[1].timing =
+        (1u << QMI_M1_TIMING_COOLDOWN_LSB) |
+        (QMI_M1_TIMING_PAGEBREAK_VALUE_1024 << QMI_M1_TIMING_PAGEBREAK_LSB) |
+        (max_select << QMI_M1_TIMING_MAX_SELECT_LSB) |
+        (min_desel << QMI_M1_TIMING_MIN_DESELECT_LSB) |
+        (7u << QMI_M1_TIMING_RXDELAY_LSB) |
+        (clkdiv << QMI_M1_TIMING_CLKDIV_LSB)
+    ;
+    xip_cache_invalidate_all();
+}
+
+void __not_in_flash_func(spry_prep_clock)(void) {
 #ifdef VIDEO_MODE_1280x720
     // 720p60: 372 MHz at 1.3V. Closest achievable to 371.25 MHz with 12 MHz XOSC
     // (0.2% high -> 74.4 MHz pixel clock, within HDMI tolerance for 720p60).
@@ -262,7 +291,11 @@ int main(void)
     // 480p60: set system clock to 126 MHz for HSTX timing (25.2 MHz pixel clock).
     set_sys_clock_khz(126000, true);
 #endif
+    spry_fix_timing();
+}
 
+int main(void) {
+    spry_prep_clock();
     stdio_init_all();
 
     // Initialize LED for heartbeat
@@ -353,8 +386,8 @@ int main(void)
             if (led_state) {
                 uint32_t ramStart = 0x20000000;
                 uint32_t static_ram_used = (uint32_t)__end__ - ramStart;
-                uint32_t ramText =
-                    (uint32_t)(__ram_text_end__ - __ram_text_start__);
+                uint32_t ramText = 0;
+                // (uint32_t)(__ram_text_end__ - __ram_text_start__);
                 uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
                 uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
                 printf(

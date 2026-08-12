@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+add_subdirectory(lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
 add_subdirectory(lib/pico_hdmi)
 
 add_executable(spryjam

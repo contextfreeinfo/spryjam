@@ -7,9 +7,7 @@
 
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
-#include "hardware/structs/qmi.h"
 #include "hardware/vreg.h"
-#include "hardware/xip_cache.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -122,12 +120,14 @@ static void generate_audio(void)
 // ============================================================================
 
 #define spry_bufferWidth 320
-#define spry_bufferHeight 180
+#define spry_bufferHeight 240
 
 uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth]
     __attribute__((aligned(4))) = {0};
 uint8_t spry_bufferVid[spry_bufferHeight][spry_bufferWidth]
     __attribute__((aligned(4))) = {0};
+
+uint16_t spry_palette[256] = {0};
 
 int spry_bufferDmaChan;
 
@@ -164,7 +164,7 @@ static float linePeriod = 0;
 
 #define spry_timeLines 0
 
-static void __scratch_x("") scanline_callback(
+static void __scratch_x("") scanline_callback_tom(
     uint32_t v_scanline, uint32_t active_line, uint32_t *dst
 ) {
     (void)v_scanline;
@@ -182,28 +182,37 @@ static void __scratch_x("") scanline_callback(
     linePeriod = retention * linePeriod + (1.0 - retention) * currentPeriod;
 #endif
     // Scale vertical and check bounds.
-    active_line /= 4;
+    active_line /= 2;
     if (active_line < 0 || active_line >= spry_bufferHeight) {
         // TODO Does this ever happen?
+        // memset(dst, 0, spry_bufferWidth * 2);
         return;
     }
     // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
-    uint8_t* line = spry_bufferVid[active_line];
-    for (int j = 0; j < spry_bufferWidth; j += 1) {
+    // int i = 0;
+    uint8_t* src = spry_bufferVid[active_line];
+    uint8_t* srcStart = src + 40;
+    dst += 20;
+    uint8_t* lineEnd = src + 280; // (spry_bufferWidth * 3 / 4);
+    while (src < lineEnd) {
         // Convert rgb332 to rgb565.
-        uint8_t rgb332 = line[j];
-        uint8_t r3 = (rgb332 >> 5) & 0x07;
-        uint8_t g3 = (rgb332 >> 2) & 0x07;
-        uint8_t b2 = rgb332 & 0x03;
-        uint16_t r5 = (r3 << 2) | (r3 >> 1);
-        uint16_t g6 = (g3 << 3) | g3;
-        uint16_t b5 = (b2 << 3) | (b2 << 1) | (b2 >> 1);
-        uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+        uint8_t rgb332 = *(src++);
+        // i += 1;
+        // uint8_t r3 = (rgb332 >> 5) & 0x07;
+        // uint8_t g3 = (rgb332 >> 2) & 0x07;
+        // uint8_t b2 = rgb332 & 0x03;
+        // uint16_t r5 = (r3 << 2) | (r3 >> 1);
+        // uint16_t g6 = (g3 << 3) | g3;
+        // uint16_t b5 = (b2 << 3) | (b2 << 1) | (b2 >> 1);
+        // uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+        // uint16_t rgb565 = rgb332 > 0x7f ? 0xffff : 0x0000;
+        // uint16_t rgb565 = spry_palette[i & 1];
+        uint16_t rgb565 = spry_palette[rgb332];
         // Repeat for two pixels, then repeat for 4 total.
         uint32_t rgb565Rep = (rgb565 << 16) | rgb565;
         *(dst++) = rgb565Rep;
-        *(dst++) = rgb565Rep;
+        // *(dst++) = rgb565Rep;
     }
 #if spry_timeLines
     // Compute time.
@@ -211,6 +220,67 @@ static void __scratch_x("") scanline_callback(
     float currentCompute = absolute_time_diff_us(start, end);
     lineCompute = retention * lineCompute + (1.0 - retention) * currentCompute;
 #endif
+}
+
+// Init palette to rgb332 colors.
+static void spry_initPalette(void) {
+    for (int j = 0; j < 256; j += 1) {
+        // Convert rgb332 to rgb565.
+        uint8_t rgb332 = j;
+        uint8_t r3 = (rgb332 >> 5) & 0x07;
+        uint8_t g3 = (rgb332 >> 2) & 0x07;
+        uint8_t b2 = rgb332 & 0x03;
+        uint16_t r5 = (r3 << 2) | (r3 >> 1);
+        uint16_t g6 = (g3 << 3) | g3;
+        uint16_t b5 = (b2 << 3) | (b2 << 1) | (b2 >> 1);
+        uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+        spry_palette[j] = rgb565;
+    }
+}
+
+// ============================================================================
+// Scanline Callback (runs on Core 1)
+// ============================================================================
+
+static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t active_line, uint32_t *dst)
+{
+    (void)v_scanline;
+
+    int fb_line = active_line;
+
+    // Read current box position
+    int bx = box_x;
+    int by = box_y;
+
+    uint32_t bg = BG_COLOR | (BG_COLOR << 16);
+    uint32_t box = BOX_COLOR | (BOX_COLOR << 16);
+
+    // Check if this line intersects the box vertically
+    if (fb_line >= by && fb_line < by + BOX_SIZE) {
+        // Three regions: before box, box, after box
+        int i = 0;
+
+        // Region 1: before box
+        // Note: iterating by 2 pixels at a time (1 uint32_t)
+        for (; i < bx / 2; i++) {
+            dst[i] = bg;
+        }
+
+        // Region 2: box
+        for (; i < (bx + BOX_SIZE) / 2 && i < FRAME_WIDTH / 2; i++) {
+            dst[i] = box;
+        }
+
+        // Region 3: after box
+        for (; i < FRAME_WIDTH / 2; i++) {
+            dst[i] = bg;
+        }
+    } else {
+        // Fast path: entire line is background
+        for (int i = 0; i < FRAME_WIDTH / 2; i++) {
+            dst[i] = bg;
+        }
+    }
 }
 
 // ============================================================================
@@ -252,33 +322,33 @@ extern char __HeapLimit[];
 extern char __StackLimit[];
 extern char __StackTop[];
 
-void __not_in_flash_func(spry_fix_timing)(void) {
-    // Magic timing.
-    uint32_t sys_hz = clock_get_hz(clk_sys);
-    uint32_t clkdiv = (sys_hz + 92999999u) / 93000000u;
-    // 320MHz -> 4, 372MHz -> 4, 126MHz -> 2.
-    if (clkdiv < 2) clkdiv = 2;
-    // CS-low must stay under tCEM (8us); CS-high must exceed tCPH (18ns).
-    uint64_t period_fs = 1000000000000000ull / sys_hz;
-    uint32_t max_select =
-        (uint32_t)(((8000ull * 1000000ull) / 64ull) / period_fs);
-    uint32_t min_desel =
-        (uint32_t)((18ull * 1000000ull + period_fs - 1) / period_fs);
-    uint32_t half_div = (clkdiv + 1) / 2;
-    min_desel = (min_desel > half_div) ? (min_desel - half_div) : 1u;
-    if (max_select > 0x3F) max_select = 0x3F; // 6-bit field
-    if (min_desel > 0x1F) min_desel = 0x1F; // 5-bit field
-    // Set timing.
-    qmi_hw->m[1].timing =
-        (1u << QMI_M1_TIMING_COOLDOWN_LSB) |
-        (QMI_M1_TIMING_PAGEBREAK_VALUE_1024 << QMI_M1_TIMING_PAGEBREAK_LSB) |
-        (max_select << QMI_M1_TIMING_MAX_SELECT_LSB) |
-        (min_desel << QMI_M1_TIMING_MIN_DESELECT_LSB) |
-        (7u << QMI_M1_TIMING_RXDELAY_LSB) |
-        (clkdiv << QMI_M1_TIMING_CLKDIV_LSB)
-    ;
-    xip_cache_invalidate_all();
-}
+// void __not_in_flash_func(spry_fix_timing)(void) {
+//     // Magic timing.
+//     uint32_t sys_hz = clock_get_hz(clk_sys);
+//     // 320MHz -> 4, 372MHz -> 4, 126MHz -> 2.
+//     uint32_t clkdiv = (sys_hz + 92999999u) / 93000000u;
+//     if (clkdiv < 2) clkdiv = 2;
+//     // CS-low must stay under tCEM (8us); CS-high must exceed tCPH (18ns).
+//     uint64_t period_fs = 1000000000000000ull / sys_hz;
+//     uint32_t max_select =
+//         (uint32_t)(((8000ull * 1000000ull) / 64ull) / period_fs);
+//     uint32_t min_desel =
+//         (uint32_t)((18ull * 1000000ull + period_fs - 1) / period_fs);
+//     uint32_t half_div = (clkdiv + 1) / 2;
+//     min_desel = (min_desel > half_div) ? (min_desel - half_div) : 1u;
+//     if (max_select > 0x3F) max_select = 0x3F; // 6-bit field
+//     if (min_desel > 0x1F) min_desel = 0x1F; // 5-bit field
+//     // Set timing.
+//     qmi_hw->m[1].timing =
+//         (1u << QMI_M1_TIMING_COOLDOWN_LSB) |
+//         (QMI_M1_TIMING_PAGEBREAK_VALUE_1024 << QMI_M1_TIMING_PAGEBREAK_LSB) |
+//         (max_select << QMI_M1_TIMING_MAX_SELECT_LSB) |
+//         (min_desel << QMI_M1_TIMING_MIN_DESELECT_LSB) |
+//         (7u << QMI_M1_TIMING_RXDELAY_LSB) |
+//         (clkdiv << QMI_M1_TIMING_CLKDIV_LSB)
+//     ;
+//     xip_cache_invalidate_all();
+// }
 
 void __not_in_flash_func(spry_prep_clock)(void) {
 #ifdef VIDEO_MODE_1280x720
@@ -291,7 +361,7 @@ void __not_in_flash_func(spry_prep_clock)(void) {
     // 480p60: set system clock to 126 MHz for HSTX timing (25.2 MHz pixel clock).
     set_sys_clock_khz(126000, true);
 #endif
-    spry_fix_timing();
+    // spry_fix_timing();
 }
 
 int main(void) {
@@ -320,7 +390,8 @@ int main(void) {
 #endif
 
     // Register scanline callback
-    video_output_set_scanline_callback(scanline_callback);
+    spry_initPalette();
+    video_output_set_scanline_callback(scanline_callback_tom);
 
     spry_initCopyBuffer();
     video_output_set_vsync_callback(spry_vsyncCallback);

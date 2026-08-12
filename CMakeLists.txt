@@ -18,14 +18,14 @@ add_executable(spryjam
     src/main.c
 )
 
-target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)
-target_compile_definitions(pico_hdmi PRIVATE VIDEO_MODE_1280x720)
+# target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)
+# target_compile_definitions(pico_hdmi PRIVATE VIDEO_MODE_1280x720)
 
 # 720p overclocks sys_clk to 372 MHz, at which XIP flash reads corrupt (the
 # boot-clock QMI timing no longer samples correctly) and the core hard-faults.
 # Execute from RAM so flash is only read at the safe boot clock. Robust and
 # flash-chip-independent.
-pico_set_binary_type(spryjam copy_to_ram)
+# pico_set_binary_type(spryjam copy_to_ram)
 
 target_link_libraries(spryjam
     pico_stdlib

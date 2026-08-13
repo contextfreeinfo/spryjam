@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "audio.h"
+#include "draw.h"
 #include "font.h"
 
 // ============================================================================
@@ -235,73 +236,6 @@ static void spry_initPalette(void) {
     }
 }
 
-// ============================================================================
-// Scanline Callback (runs on Core 1)
-// ============================================================================
-
-static void __scratch_x("") scanline_callback(uint32_t v_scanline, uint32_t active_line, uint32_t *dst)
-{
-    (void)v_scanline;
-
-    int fb_line = active_line;
-
-    // Read current box position
-    int bx = box_x;
-    int by = box_y;
-
-    uint32_t bg = BG_COLOR | (BG_COLOR << 16);
-    uint32_t box = BOX_COLOR | (BOX_COLOR << 16);
-
-    // Check if this line intersects the box vertically
-    if (fb_line >= by && fb_line < by + BOX_SIZE) {
-        // Three regions: before box, box, after box
-        int i = 0;
-
-        // Region 1: before box
-        // Note: iterating by 2 pixels at a time (1 uint32_t)
-        for (; i < bx / 2; i++) {
-            dst[i] = bg;
-        }
-
-        // Region 2: box
-        for (; i < (bx + BOX_SIZE) / 2 && i < FRAME_WIDTH / 2; i++) {
-            dst[i] = box;
-        }
-
-        // Region 3: after box
-        for (; i < FRAME_WIDTH / 2; i++) {
-            dst[i] = bg;
-        }
-    } else {
-        // Fast path: entire line is background
-        for (int i = 0; i < FRAME_WIDTH / 2; i++) {
-            dst[i] = bg;
-        }
-    }
-}
-
-// ============================================================================
-// Main (Core 0)
-// ============================================================================
-
-static void update_box(void)
-{
-    int x = box_x + box_dx;
-    int y = box_y + box_dy;
-
-    if (x <= 0 || x + BOX_SIZE >= FRAME_WIDTH) {
-        box_dx = -box_dx;
-        x = box_x + box_dx;
-    }
-    if (y <= 0 || y + BOX_SIZE >= FRAME_HEIGHT) {
-        box_dy = -box_dy;
-        y = box_y + box_dy;
-    }
-
-    box_x = x;
-    box_y = y;
-}
-
 static void __attribute__((optimize("O0"))) spini(int max, int step) {
     for (int i = 0; i < max; i += step) {
         // pass
@@ -406,6 +340,12 @@ int main(void) {
     uint32_t last_frame = 0;
     bool led_state = false;
     int blinkCount = 0;
+    spry_Raster raster = {
+        .sizeX = spry_bufferWidth,
+        .sizeY = spry_bufferHeight,
+        .stride = spry_bufferWidth / 4,
+        .bytes = (uint32_t*)spry_buffer,
+    };
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -420,9 +360,6 @@ int main(void) {
             tight_loop_contents();
         }
         last_frame = video_frame_count;
-
-        // Update animation
-        // update_box();
 
 #ifndef BOUNCING_BOX_DVI_ONLY
         // Advance melody (one note step per frame)
@@ -444,7 +381,11 @@ int main(void) {
                     *pixel = i == offsetJ ? 0xb6 : 0x49;
                 }
             }
+            spry_drawText(&raster, &spry_font8, "Hi there!", 0, 0, 0xb6);
             drawTime = absolute_time_diff_us(start, get_absolute_time());
+            if (spry_debugDraw > 0) {
+                spry_debugDraw -= 1;
+            }
         }
 
         // LED heartbeat
@@ -475,11 +416,20 @@ int main(void) {
         // Input.
         int c = stdio_getchar_timeout_us(0);
         if (c != PICO_ERROR_TIMEOUT) {
-            printf("Key: %d %zu %d\n", c, sizeof(spry_buffer), spry_buffer[c][50]);
-            absolute_time_t start = get_absolute_time();
-            spini(10000000, 1);
-            int64_t diff = absolute_time_diff_us(start, get_absolute_time());
-            printf("Time: %f\n", diff * 1e-6);
+            spry_debugDraw = 1;
+            printf(
+                "Key: %d %zu %p %p %p %p\n",
+                c,
+                sizeof(spry_buffer),
+                spry_buffer,
+                raster.bytes,
+                spry_font8Data,
+                spry_font8.raster.bytes
+            );
+            // absolute_time_t start = get_absolute_time();
+            // spini(10000000, 1);
+            // int64_t diff = absolute_time_diff_us(start, get_absolute_time());
+            // printf("Time: %f\n", diff * 1e-6);
         }
     }
 

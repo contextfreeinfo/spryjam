@@ -16,6 +16,7 @@ add_subdirectory(lib/pico_hdmi)
 
 add_executable(spryjam
     src/main.c
+    src/draw.c
 )
 
 # target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)

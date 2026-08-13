@@ -373,20 +373,27 @@ int main(void) {
         if ((video_frame_count % 1) == 0) {
             absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
-            uint8_t* pixel = spry_buffer[0];
-            for (int i = 0; i < spry_bufferHeight; i += 1) {
-                for (int j = 0; j < spry_bufferWidth; j += 1, pixel += 1) {
-                    int offsetJ =
-                        (j + spry_bufferWidth - offset) % spry_bufferWidth;
-                    *pixel = i == offsetJ ? 0xb6 : 0x49;
-                }
+            memset(spry_buffer, 0x49, sizeof(spry_buffer));
+            for (int y = 0; y < spry_bufferHeight; y += 1) {
+                int x = (y + spry_bufferWidth + offset) % spry_bufferWidth;
+                spry_buffer[y][x] = 0xb6;
             }
+            // uint8_t* pixel = spry_buffer[0];
+            // for (int i = 0; i < spry_bufferHeight; i += 1) {
+            //     for (int j = 0; j < spry_bufferWidth; j += 1, pixel += 1) {
+            //         int offsetJ =
+            //             (j + spry_bufferWidth - offset) % spry_bufferWidth;
+            //         *pixel = i == offsetJ ? 0xb6 : 0x49;
+            //     }
+            // }
             spry_Font* font = &spry_font8;
-            const char* message = "Hi there!";
+            const char* message = "Hi there! Bye y'all!";
             int stepX = font->stepX * (strlen(message) + 1);
             for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
+                int step = 1;
                 for (int x = 0; x < spry_bufferWidth; x += stepX) {
-                    spry_drawText(&raster, font, message, x, y, 0xb6);
+                    spry_drawText(&raster, font, message, x, y, 0x37 * step);
+                    step += 1;
                 }
             }
             drawTime = absolute_time_diff_us(start, get_absolute_time());

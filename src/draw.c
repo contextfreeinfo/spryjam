@@ -52,9 +52,9 @@ void spry_drawChar(
     // }
     // Prevent memory overflows.
     // TODO Edge draws.
-    if (x < 0 || y < 0) return;
+    if (x < 0) return;
     if (x + 8 >= raster->sizeX) return;
-    if (y + font->glyphSizeY >= raster->sizeY) return;
+    // if (y + font->glyphSizeY >= raster->sizeY) return;
     // Draw.
     int fontStride = font->raster.stride * font->glyphSizeY;
     c -= font->start;
@@ -72,6 +72,8 @@ void spry_drawChar(
     // TODO Adjust offset and size for boundaries before loop.
     int offset = 8 - font->raster.sizeX - font->raster.offsetX;
     while (src < srcEnd) {
+        if (y < 0) continue;
+        if (y >= raster->sizeY) break;
         // TODO What if byte width > 1?
         uint8_t lines = *src;
         lines >>= offset;
@@ -88,6 +90,7 @@ void spry_drawChar(
         // spry_drawCharLine(dst, lines >> 24, color);
         // dst += raster->stride;
         src += 1;
+        y += 1;
     }
 }
 

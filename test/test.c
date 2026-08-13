@@ -10,7 +10,7 @@ uint8_t rasterBytes[rasterSizeY][rasterSizeX] = {0};
 spry_Raster raster = {
     .sizeX = rasterSizeX,
     .sizeY = rasterSizeY,
-    .stride = rasterSizeX / 4,
+    .stride = rasterSizeX,
     .bytes = (uint32_t*)rasterBytes,
 };
 

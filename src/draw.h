@@ -10,7 +10,7 @@ typedef struct spry_Raster {
     int sizeX;
     int sizeY;
     int stride;
-    uint32_t* bytes;
+    uint8_t* bytes;
 } spry_Raster;
 
 typedef struct spry_Font {

@@ -1,5 +1,9 @@
 ## Info
 
+```sh
+cp spryjam.uf2 /media/tom/RP2350/
+```
+
 ```
 Key: 105 76800 2000C6C0 2000C6C0 20001188 20001188
 Hi there!: 80

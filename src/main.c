@@ -343,8 +343,8 @@ int main(void) {
     spry_Raster raster = {
         .sizeX = spry_bufferWidth,
         .sizeY = spry_bufferHeight,
-        .stride = spry_bufferWidth / 4,
-        .bytes = (uint32_t*)spry_buffer,
+        .stride = spry_bufferWidth,
+        .bytes = (uint8_t*)spry_buffer,
     };
 
     while (1) {
@@ -381,7 +381,14 @@ int main(void) {
                     *pixel = i == offsetJ ? 0xb6 : 0x49;
                 }
             }
-            spry_drawText(&raster, &spry_font8, "Hi there!", 0, 0, 0xb6);
+            spry_Font* font = &spry_font8;
+            const char* message = "Hi there!";
+            int stepX = font->stepX * (strlen(message) + 1);
+            for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
+                for (int x = 0; x < spry_bufferWidth; x += stepX) {
+                    spry_drawText(&raster, font, message, x, y, 0xb6);
+                }
+            }
             drawTime = absolute_time_diff_us(start, get_absolute_time());
             if (spry_debugDraw > 0) {
                 spry_debugDraw -= 1;

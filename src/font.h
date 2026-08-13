@@ -120,7 +120,7 @@ spry_Font spry_font8 = {
         .offsetY = 0,
         .sizeX = 5,
         .sizeY = sizeof(spry_font8Data) / sizeof(*spry_font8Data),
-        .stride = 2,
-        .bytes = (uint32_t*)spry_font8Data,
+        .stride = 1,
+        .bytes = (uint8_t*)spry_font8Data,
     },
 };

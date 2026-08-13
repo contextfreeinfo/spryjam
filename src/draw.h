@@ -23,9 +23,9 @@ typedef struct spry_Font {
 } spry_Font;
 
 void spry_drawText(
-    spry_Raster *restrict raster,
-    const spry_Font *restrict font,
-    const char *restrict text,
+    spry_Raster */*restrict*/ raster,
+    const spry_Font */*restrict*/ font,
+    const char */*restrict*/ text,
     int x,
     int y,
     uint8_t color

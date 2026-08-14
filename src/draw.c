@@ -68,6 +68,7 @@ void spry_drawChar(
     //         "%c %d: %d %d, %p %p %p\n",
     //         c + font->start, c, x, y, dst, src, srcEnd
     //     );
+    //     spry_debugDraw -= 1;
     // }
     // TODO Adjust offset and size for boundaries before loop.
     int offset = 8 - font->raster.sizeX - font->raster.offsetX;
@@ -83,12 +84,6 @@ void spry_drawChar(
         // }
         spry_drawCharLine(dst, lines, color);
         dst += raster->stride;
-        // spry_drawCharLine(dst, (lines >> 8) & 0xff, color);
-        // dst += raster->stride;
-        // spry_drawCharLine(dst, (lines >> 16) & 0xff, color);
-        // dst += raster->stride;
-        // spry_drawCharLine(dst, lines >> 24, color);
-        // dst += raster->stride;
         src += 1;
         y += 1;
     }
@@ -103,7 +98,7 @@ void spry_drawText(
     uint8_t color
 ) {
     // if (spry_debugDraw) {
-    //     printf("%s: %d\n", text, raster->stride);
+    //     printf("%s: %p\n", text, font->raster.bytes);
     // }
     for (const char* c = text; *c; c += 1) {
         spry_drawChar(raster, font, *c, x, y, color);

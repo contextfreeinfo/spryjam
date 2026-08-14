@@ -386,20 +386,23 @@ int main(void) {
             //         *pixel = i == offsetJ ? 0xb6 : 0x49;
             //     }
             // }
-            spry_Font* font = &spry_font8;
+            spry_Font* font = &spry_font7;
             const char* messages[] = {
                 "the five boxing wizards jump quickly. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
                 "THE FIVE BOXING WIZARDS JUMP QUICKLY. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
             };
             int stepColor = 1;
+            int row = 0;
             for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
-                const char* message = messages[y % 2];
+                const char* message = messages[row % 2];
                 int stepX = font->stepX * (strlen(message) + 1);
                 for (int x = 0; x < spry_bufferWidth; x += stepX) {
+                // for (int x = 0; x < 1; x += stepX) {
                     uint8_t color = stepColor + video_frame_count / 60;
                     spry_drawText(&raster, font, message, x, y, color);
                     stepColor += 1;
                 }
+                row += 1;
             }
             drawTime = absolute_time_diff_us(start, get_absolute_time());
             if (spry_debugDraw > 0) {
@@ -435,15 +438,10 @@ int main(void) {
         // Input.
         int c = stdio_getchar_timeout_us(0);
         if (c != PICO_ERROR_TIMEOUT) {
-            spry_debugDraw = 1;
+            spry_debugDraw = 4;
             printf(
-                "Key: %d %zu %p %p %p %p\n",
-                c,
-                sizeof(spry_buffer),
-                spry_buffer,
-                raster.bytes,
-                spry_font8Data,
-                spry_font8.raster.bytes
+                "Key: %d %zu %p\n",
+                c, sizeof(spry_buffer), spry_buffer
             );
             // absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);

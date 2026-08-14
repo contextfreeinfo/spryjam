@@ -26,12 +26,21 @@ void printRaster(void) {
 int main(void) {
     spry_debugDraw = 1;
     printf("rasterBytes: %p\n", rasterBytes);
+    const char* text = "Hi!";
+    spry_drawText(
+        &raster,
+        &spry_font7,
+        text,
+        0,
+        0,
+        0xff
+    );
     spry_drawText(
         &raster,
         &spry_font8,
-        "Hi!",
+        text,
         0,
-        0,
+        8,
         0xff
     );
     printRaster();

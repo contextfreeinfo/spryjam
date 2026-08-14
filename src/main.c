@@ -346,6 +346,8 @@ int main(void) {
         .stride = spry_bufferWidth,
         .bytes = (uint8_t*)spry_buffer,
     };
+    int fontIndex = 0;
+    spry_Font* font = spry_fonts[fontIndex];
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -386,7 +388,6 @@ int main(void) {
             //         *pixel = i == offsetJ ? 0xb6 : 0x49;
             //     }
             // }
-            spry_Font* font = &spry_font7;
             const char* messages[] = {
                 "the five boxing wizards jump quickly. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
                 "THE FIVE BOXING WIZARDS JUMP QUICKLY. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
@@ -443,6 +444,11 @@ int main(void) {
                 "Key: %d %zu %p\n",
                 c, sizeof(spry_buffer), spry_buffer
             );
+            if (c == 'f') {
+                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
+                fontIndex = (fontIndex + 1) % fontsLen;
+                font = spry_fonts[fontIndex];
+            }
             // absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);
             // int64_t diff = absolute_time_diff_us(start, get_absolute_time());

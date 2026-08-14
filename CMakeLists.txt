@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(PICO_BOARD adafruit_fruit_jam CACHE STRING "Board type")
+set(PICO_PIO_USB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/Pico-PIO-USB)
 
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 
@@ -35,6 +36,12 @@ target_link_libraries(spryjam
     hardware_dma
     hardware_irq
     pico_hdmi
+)
+
+target_compile_definitions(spryjam PRIVATE
+    PICO_STACK_SIZE=0x1000
+    # PicoHDMI uses lots of scratch_x, so that impacts stack options.
+    PICO_CORE1_STACK_SIZE=0x800
 )
 
 # Enable USB output, disable UART

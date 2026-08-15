@@ -1,6 +1,12 @@
 [submodule "lib/pico_hdmi"]
 	path = lib/pico_hdmi
-	url = git@github.com:fliperama86/pico_hdmi.git
+	url = https://github.com/fliperama86/pico_hdmi.git
 [submodule "lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico"]
 	path = lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
-	url = git@github.com:carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico.git
+	url = https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico.git
+[submodule "lib/Pico-PIO-USB"]
+	path = lib/Pico-PIO-USB
+	url = https://github.com/sekigon-gonnoc/Pico-PIO-USB.git
+[submodule "lib/wili8jam"]
+	path = lib/wili8jam
+	url = https://github.com/freewili/wili8jam.git

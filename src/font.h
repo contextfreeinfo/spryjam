@@ -236,3 +236,8 @@ spry_Font spry_font8 = {
         .bytes = (uint8_t*)spry_font8Data,
     },
 };
+
+spry_Font* spry_fonts[] = {
+    &spry_font8,
+    &spry_font7,
+};

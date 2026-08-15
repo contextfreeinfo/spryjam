@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(PICO_BOARD adafruit_fruit_jam CACHE STRING "Board type")
+set(PICO_PIO_USB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/Pico-PIO-USB)
 
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 
@@ -14,9 +15,23 @@ pico_sdk_init()
 add_subdirectory(lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
 add_subdirectory(lib/pico_hdmi)
 
+# From wili8jam.
+# --- USB Host library (PIO-USB, HID, XInput, CDC, MSC) ---
+set(FWUSBHOST_TUSB_DEBUG_LEVEL 2)  # output goes to ring buffer, dumped via 'info'
+add_subdirectory(lib/wili8jam/usb-host)
+
 add_executable(spryjam
     src/main.c
     src/draw.c
+    src/input.c
+    src/input-cpp.cpp
+    # TinyUSB host stack — must be compiled in the executable (not fwUSBHost lib)
+    # to avoid duplicate symbols with the device stack from pico_stdio_usb
+    ${FWUSBHOST_TINYUSB_HOST_SOURCES}
+)
+
+target_include_directories(spryjam PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/wili8jam
 )
 
 # target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)
@@ -29,12 +44,20 @@ add_executable(spryjam
 # pico_set_binary_type(spryjam copy_to_ram)
 
 target_link_libraries(spryjam
-    pico_stdlib
-    pico_multicore
+    fwUSBHost
     hardware_clocks
     hardware_dma
     hardware_irq
+    hardware_pio
     pico_hdmi
+    pico_multicore
+    pico_stdlib
+)
+
+target_compile_definitions(spryjam PRIVATE
+    PICO_STACK_SIZE=0x1000
+    # PicoHDMI uses lots of scratch_x, so that impacts stack options.
+    PICO_CORE1_STACK_SIZE=0x800
 )
 
 # Enable USB output, disable UART

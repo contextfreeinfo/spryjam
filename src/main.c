@@ -9,6 +9,10 @@
 #include "hardware/dma.h"
 #include "hardware/vreg.h"
 
+#include "pio_usb.h"
+#include "tusb.h"
+// #include "usb-host/fwUSBHost.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +21,7 @@
 #include "audio.h"
 #include "draw.h"
 #include "font.h"
+#include "input.h"
 
 // ============================================================================
 // Configuration
@@ -122,8 +127,8 @@ static void generate_audio(void)
 // Scanline Callback (runs on Core 1)
 // ============================================================================
 
-#define spry_bufferWidth 320
-#define spry_bufferHeight 240
+#define spry_bufferWidth 288
+#define spry_bufferHeight 216
 
 uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth]
     __attribute__((aligned(4))) = {0};
@@ -167,7 +172,7 @@ static float linePeriod = 0;
 
 #define spry_timeLines 0
 
-static void __scratch_x("") scanline_callback_tom(
+static void __scratch_x("") scanline_callback(
     uint32_t v_scanline, uint32_t active_line, uint32_t *dst
 ) {
     (void)v_scanline;
@@ -185,16 +190,27 @@ static void __scratch_x("") scanline_callback_tom(
     linePeriod = retention * linePeriod + (1.0 - retention) * currentPeriod;
 #endif
     // Scale vertical and check bounds.
-    active_line /= 2;
-    if (active_line < 0 || active_line >= spry_bufferHeight) {
-        // TODO Does this ever happen?
+    int line = active_line / 2;
+    line -= (240 - spry_bufferHeight) / 2;
+    dst += (320 - spry_bufferWidth) / 2;
+    if (line < 0 || line >= spry_bufferHeight) {
         // memset(dst, 0, spry_bufferWidth * 2);
+        uint32_t* src = (uint32_t*)spry_bufferVid[0];
+        uint32_t* lineEnd = src + (spry_bufferWidth / 4);
+        while (src < lineEnd) {
+            dst[0] = 0;
+            dst[1] = 0;
+            dst[2] = 0;
+            dst[3] = 0;
+            src += 1;
+            dst += 4;
+        }
         return;
     }
     // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
     // int i = 0;
-    uint32_t* src = (uint32_t*)spry_bufferVid[active_line];
+    uint32_t* src = (uint32_t*)spry_bufferVid[line];
     uint32_t* lineEnd = src + (spry_bufferWidth / 4);
     while (src < lineEnd) {
         uint32_t bytes = *(src++);
@@ -253,35 +269,7 @@ extern char __HeapLimit[];
 extern char __StackLimit[];
 extern char __StackTop[];
 
-// void __not_in_flash_func(spry_fix_timing)(void) {
-//     // Magic timing.
-//     uint32_t sys_hz = clock_get_hz(clk_sys);
-//     // 320MHz -> 4, 372MHz -> 4, 126MHz -> 2.
-//     uint32_t clkdiv = (sys_hz + 92999999u) / 93000000u;
-//     if (clkdiv < 2) clkdiv = 2;
-//     // CS-low must stay under tCEM (8us); CS-high must exceed tCPH (18ns).
-//     uint64_t period_fs = 1000000000000000ull / sys_hz;
-//     uint32_t max_select =
-//         (uint32_t)(((8000ull * 1000000ull) / 64ull) / period_fs);
-//     uint32_t min_desel =
-//         (uint32_t)((18ull * 1000000ull + period_fs - 1) / period_fs);
-//     uint32_t half_div = (clkdiv + 1) / 2;
-//     min_desel = (min_desel > half_div) ? (min_desel - half_div) : 1u;
-//     if (max_select > 0x3F) max_select = 0x3F; // 6-bit field
-//     if (min_desel > 0x1F) min_desel = 0x1F; // 5-bit field
-//     // Set timing.
-//     qmi_hw->m[1].timing =
-//         (1u << QMI_M1_TIMING_COOLDOWN_LSB) |
-//         (QMI_M1_TIMING_PAGEBREAK_VALUE_1024 << QMI_M1_TIMING_PAGEBREAK_LSB) |
-//         (max_select << QMI_M1_TIMING_MAX_SELECT_LSB) |
-//         (min_desel << QMI_M1_TIMING_MIN_DESELECT_LSB) |
-//         (7u << QMI_M1_TIMING_RXDELAY_LSB) |
-//         (clkdiv << QMI_M1_TIMING_CLKDIV_LSB)
-//     ;
-//     xip_cache_invalidate_all();
-// }
-
-void __not_in_flash_func(spry_prep_clock)(void) {
+void spry_prepClock(void) {
 #ifdef VIDEO_MODE_1280x720
     // 720p60: 372 MHz at 1.3V. Closest achievable to 371.25 MHz with 12 MHz XOSC
     // (0.2% high -> 74.4 MHz pixel clock, within HDMI tolerance for 720p60).
@@ -292,12 +280,26 @@ void __not_in_flash_func(spry_prep_clock)(void) {
     // 480p60: set system clock to 126 MHz for HSTX timing (25.2 MHz pixel clock).
     set_sys_clock_khz(126000, true);
 #endif
-    // spry_fix_timing();
+
+    // Enable 5V VBUS power to USB-A host port (GPIO 11 controls power switch)
+    gpio_init(11);
+    gpio_set_dir(11, GPIO_OUT);
+    gpio_put(11, 1);
+
+    // Configure PIO-USB host on port 1 (D+ = GPIO1, D- = GPIO2).
+    pio_usb_configuration_t pio_cfg = PIO_USB_DEFAULT_CONFIG;
+    pio_cfg.pin_dp = 1;
+    pio_cfg.tx_ch = 9;
+    tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
+char spry_text[0x100] = {'[', 't', 'y', 'p', 'e', ']', 0};
+int spry_textIndex = 0;
+
 int main(void) {
-    spry_prep_clock();
+    spry_prepClock();
     stdio_init_all();
+    spry_initInput();
 
     // Initialize LED for heartbeat
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -322,7 +324,7 @@ int main(void) {
 
     // Register scanline callback
     spry_initPalette();
-    video_output_set_scanline_callback(scanline_callback_tom);
+    video_output_set_scanline_callback(scanline_callback);
 
     spry_initCopyBuffer();
     video_output_set_vsync_callback(spry_vsyncCallback);
@@ -346,6 +348,8 @@ int main(void) {
         .stride = spry_bufferWidth,
         .bytes = (uint8_t*)spry_buffer,
     };
+    int fontIndex = 0;
+    spry_Font* font = spry_fonts[fontIndex];
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -357,6 +361,7 @@ int main(void) {
 #ifndef BOUNCING_BOX_DVI_ONLY
             generate_audio();
 #endif
+            input_update();
             tight_loop_contents();
         }
         last_frame = video_frame_count;
@@ -386,18 +391,29 @@ int main(void) {
             //         *pixel = i == offsetJ ? 0xb6 : 0x49;
             //     }
             // }
-            spry_Font* font = &spry_font7;
             const char* messages[] = {
                 "the five boxing wizards jump quickly. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
                 "THE FIVE BOXING WIZARDS JUMP QUICKLY. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
             };
             int stepColor = 1;
             int row = 0;
+            int c = input_getchar();
+            if (c >= 32 && spry_textIndex < sizeof(spry_text) - 1) {
+                spry_text[spry_textIndex++] = (char)c;
+            } else if (c == 8 && spry_textIndex > 0) {
+                spry_text[--spry_textIndex] = 0;
+            } else if (c == '\n') {
+                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
+                fontIndex = (fontIndex + 1) % fontsLen;
+                font = spry_fonts[fontIndex];
+            } else if (c != -1) {
+                printf("c: %d\n", c);
+            }
             for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
-                const char* message = messages[row % 2];
+                // const char* message = messages[row % 2];
+                const char* message = spry_text;
                 int stepX = font->stepX * (strlen(message) + 1);
                 for (int x = 0; x < spry_bufferWidth; x += stepX) {
-                // for (int x = 0; x < 1; x += stepX) {
                     uint8_t color = stepColor + video_frame_count / 60;
                     spry_drawText(&raster, font, message, x, y, color);
                     stepColor += 1;
@@ -443,6 +459,11 @@ int main(void) {
                 "Key: %d %zu %p\n",
                 c, sizeof(spry_buffer), spry_buffer
             );
+            if (c == 'f') {
+                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
+                fontIndex = (fontIndex + 1) % fontsLen;
+                font = spry_fonts[fontIndex];
+            }
             // absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);
             // int64_t diff = absolute_time_diff_us(start, get_absolute_time());

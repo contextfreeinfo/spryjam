@@ -348,8 +348,7 @@ int main(void) {
         .stride = spry_bufferWidth,
         .bytes = (uint8_t*)spry_buffer,
     };
-    int fontIndex = 0;
-    spry_Font* font = spry_fonts[fontIndex];
+    spry_Font* font = &spry_font8;
 
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
@@ -398,14 +397,19 @@ int main(void) {
             int stepColor = 1;
             int row = 0;
             int c = input_getchar();
-            if (c >= 32 && spry_textIndex < sizeof(spry_text) - 1) {
+            int modifiers = input_modifiers();
+            uint8_t ctrl =
+                KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL;
+            if (modifiers & ctrl) {
+                if (input_key(HID_KEY_MINUS)) {
+                    font = &spry_font7;
+                } else if (input_key(HID_KEY_EQUAL)) {
+                    font = &spry_font8;
+                }
+            } else if (c >= 32 && spry_textIndex < sizeof(spry_text) - 1) {
                 spry_text[spry_textIndex++] = (char)c;
             } else if (c == 8 && spry_textIndex > 0) {
                 spry_text[--spry_textIndex] = 0;
-            } else if (c == '\n') {
-                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
-                fontIndex = (fontIndex + 1) % fontsLen;
-                font = spry_fonts[fontIndex];
             } else if (c != -1) {
                 printf("c: %d\n", c);
             }
@@ -459,11 +463,6 @@ int main(void) {
                 "Key: %d %zu %p\n",
                 c, sizeof(spry_buffer), spry_buffer
             );
-            if (c == 'f') {
-                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
-                fontIndex = (fontIndex + 1) % fontsLen;
-                font = spry_fonts[fontIndex];
-            }
             // absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);
             // int64_t diff = absolute_time_diff_us(start, get_absolute_time());

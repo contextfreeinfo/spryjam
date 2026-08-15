@@ -33,6 +33,8 @@ void input_set_modifier_poll(input_modifier_poll_fn fn);
 // Get next character from USB keyboard buffer. Returns -1 if empty.
 int input_getchar(void);
 
+uint8_t input_modifiers(void);
+
 // Flush the keyboard character buffer (discard all buffered input).
 void input_flush(void);
 

@@ -55,6 +55,10 @@ static inline void key_clear(uint8_t *bitfield, uint8_t keycode) {
 static volatile uint8_t current_modifiers;
 static input_modifier_poll_fn modifier_poll_fn;
 
+uint8_t input_modifiers(void) {
+    return current_modifiers;
+}
+
 void input_sync_modifiers(uint8_t modifiers) {
     current_modifiers = modifiers;
     // Mirror modifier bits into key_state so input_key(0xE0..0xE7) works

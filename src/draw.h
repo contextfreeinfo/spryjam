@@ -26,6 +26,7 @@ void spry_drawText(
     spry_Raster */*restrict*/ raster,
     const spry_Font */*restrict*/ font,
     const char */*restrict*/ text,
+    int len,
     int x,
     int y,
     uint8_t color

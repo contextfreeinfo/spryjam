@@ -293,7 +293,7 @@ void spry_prepClock(void) {
     tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
-char spry_text[0x100] = {'[', 't', 'y', 'p', 'e', ']', 0};
+char spry_text[0x100] = {0};
 int spry_textIndex = 0;
 
 int main(void) {
@@ -406,24 +406,40 @@ int main(void) {
                 } else if (input_key(HID_KEY_EQUAL)) {
                     font = &spry_font8;
                 }
-            } else if (c >= 32 && spry_textIndex < sizeof(spry_text) - 1) {
+            } else if (
+                (c >= 32 || c == '\n' || c == '\t') &&
+                spry_textIndex < sizeof(spry_text) - 1
+            ) {
                 spry_text[spry_textIndex++] = (char)c;
             } else if (c == 8 && spry_textIndex > 0) {
                 spry_text[--spry_textIndex] = 0;
             } else if (c != -1) {
                 printf("c: %d\n", c);
             }
-            for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
-                // const char* message = messages[row % 2];
-                const char* message = spry_text;
-                int stepX = font->stepX * (strlen(message) + 1);
-                for (int x = 0; x < spry_bufferWidth; x += stepX) {
-                    uint8_t color = stepColor + video_frame_count / 60;
-                    spry_drawText(&raster, font, message, x, y, color);
-                    stepColor += 1;
-                }
-                row += 1;
+            char* message = spry_text;
+            int y = 0;
+            while (true) {
+                char* lineEnd = strchr(message, '\n');
+                bool done = !lineEnd;
+                if (done) lineEnd = message + strlen(message);
+                spry_drawText(
+                    &raster, font, message, lineEnd - message, 0, y, 0xb6
+                );
+                if (done) break;
+                message = lineEnd + 1;
+                y += font->stepY;
             }
+            // for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
+            //     // const char* message = messages[row % 2];
+            //     const char* message = spry_text;
+            //     int stepX = font->stepX * (strlen(message) + 1);
+            //     for (int x = 0; x < spry_bufferWidth; x += stepX) {
+            //         uint8_t color = stepColor + video_frame_count / 60;
+            //         spry_drawText(&raster, font, message, strlen(message), x, y, color);
+            //         stepColor += 1;
+            //     }
+            //     row += 1;
+            // }
             drawTime = absolute_time_diff_us(start, get_absolute_time());
             if (spry_debugDraw > 0) {
                 spry_debugDraw -= 1;

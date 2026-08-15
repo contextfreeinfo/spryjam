@@ -102,14 +102,13 @@ void spry_drawText(
     spry_Raster */*restrict*/ raster,
     const spry_Font */*restrict*/ font,
     const char */*restrict*/ text,
+    int len,
     int x,
     int y,
     uint8_t color
 ) {
-    // if (spry_debugDraw) {
-    //     printf("%s: %p\n", text, font->raster.bytes);
-    // }
-    for (const char* c = text; *c; c += 1) {
+    const char* end = text + len;
+    for (const char* c = text; c < end; c += 1) {
         spry_drawChar(raster, font, *c, x, y, color);
         x += font->stepX;
     }

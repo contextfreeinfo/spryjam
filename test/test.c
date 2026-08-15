@@ -1,6 +1,7 @@
 #include <draw.h>
 #include <font.h>
 #include <stdio.h>
+#include <string.h>
 
 #define rasterSizeX 24
 #define rasterSizeY 20
@@ -31,6 +32,7 @@ int main(void) {
         &raster,
         &spry_font7,
         text,
+        strlen(text),
         -3,
         -1,
         0xff
@@ -39,6 +41,7 @@ int main(void) {
         &raster,
         &spry_font8,
         text,
+        strlen(text),
         -3,
         7,
         0xff
@@ -47,6 +50,7 @@ int main(void) {
         &raster,
         &spry_font8,
         text,
+        strlen(text),
         -3,
         16,
         0xff

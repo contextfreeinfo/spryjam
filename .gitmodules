@@ -7,3 +7,6 @@
 [submodule "lib/Pico-PIO-USB"]
 	path = lib/Pico-PIO-USB
 	url = https://github.com/sekigon-gonnoc/Pico-PIO-USB.git
+[submodule "lib/wili8jam"]
+	path = lib/wili8jam
+	url = https://github.com/freewili/wili8jam.git

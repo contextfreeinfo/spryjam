@@ -9,6 +9,10 @@
 #include "hardware/dma.h"
 #include "hardware/vreg.h"
 
+#include "pio_usb.h"
+#include "tusb.h"
+// #include "usb-host/fwUSBHost.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +21,7 @@
 #include "audio.h"
 #include "draw.h"
 #include "font.h"
+#include "input.h"
 
 // ============================================================================
 // Configuration
@@ -253,7 +258,7 @@ extern char __HeapLimit[];
 extern char __StackLimit[];
 extern char __StackTop[];
 
-void spry_prep_clock(void) {
+void spry_prepClock(void) {
 #ifdef VIDEO_MODE_1280x720
     // 720p60: 372 MHz at 1.3V. Closest achievable to 371.25 MHz with 12 MHz XOSC
     // (0.2% high -> 74.4 MHz pixel clock, within HDMI tolerance for 720p60).
@@ -264,11 +269,23 @@ void spry_prep_clock(void) {
     // 480p60: set system clock to 126 MHz for HSTX timing (25.2 MHz pixel clock).
     set_sys_clock_khz(126000, true);
 #endif
+
+    // Enable 5V VBUS power to USB-A host port (GPIO 11 controls power switch)
+    gpio_init(11);
+    gpio_set_dir(11, GPIO_OUT);
+    gpio_put(11, 1);
+
+    // Configure PIO-USB host on port 1 (D+ = GPIO1, D- = GPIO2).
+    pio_usb_configuration_t pio_cfg = PIO_USB_DEFAULT_CONFIG;
+    pio_cfg.pin_dp = 1;
+    pio_cfg.tx_ch = 9;
+    tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
 int main(void) {
-    spry_prep_clock();
+    spry_prepClock();
     stdio_init_all();
+    spry_initInput();
 
     // Initialize LED for heartbeat
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -330,6 +347,7 @@ int main(void) {
 #ifndef BOUNCING_BOX_DVI_ONLY
             generate_audio();
 #endif
+            input_update();
             tight_loop_contents();
         }
         last_frame = video_frame_count;

@@ -74,7 +74,7 @@ void spry_drawChar(
     //     );
     //     spry_debugDraw -= 1;
     // }
-    // TODO Adjust offset and size for boundaries before loop.
+    // TODO Custom loop if no chance of overflow or underflow?
     int offset = 8 - font->raster.sizeX - font->raster.offsetX;
     for (; src < srcEnd; dst += raster->stride, ++src, ++y) {
         if (y < 0) continue;

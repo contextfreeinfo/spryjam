@@ -127,8 +127,8 @@ static void generate_audio(void)
 // Scanline Callback (runs on Core 1)
 // ============================================================================
 
-#define spry_bufferWidth 320
-#define spry_bufferHeight 240
+#define spry_bufferWidth 288
+#define spry_bufferHeight 216
 
 uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth]
     __attribute__((aligned(4))) = {0};
@@ -172,7 +172,7 @@ static float linePeriod = 0;
 
 #define spry_timeLines 0
 
-static void __scratch_x("") scanline_callback_tom(
+static void __scratch_x("") scanline_callback(
     uint32_t v_scanline, uint32_t active_line, uint32_t *dst
 ) {
     (void)v_scanline;
@@ -190,16 +190,27 @@ static void __scratch_x("") scanline_callback_tom(
     linePeriod = retention * linePeriod + (1.0 - retention) * currentPeriod;
 #endif
     // Scale vertical and check bounds.
-    active_line /= 2;
-    if (active_line < 0 || active_line >= spry_bufferHeight) {
-        // TODO Does this ever happen?
+    int line = active_line / 2;
+    line -= (240 - spry_bufferHeight) / 2;
+    dst += (320 - spry_bufferWidth) / 2;
+    if (line < 0 || line >= spry_bufferHeight) {
         // memset(dst, 0, spry_bufferWidth * 2);
+        uint32_t* src = (uint32_t*)spry_bufferVid[0];
+        uint32_t* lineEnd = src + (spry_bufferWidth / 4);
+        while (src < lineEnd) {
+            dst[0] = 0;
+            dst[1] = 0;
+            dst[2] = 0;
+            dst[3] = 0;
+            src += 1;
+            dst += 4;
+        }
         return;
     }
     // Scale and translate current scan line.
     // TODO Save each translation for 4 lines?
     // int i = 0;
-    uint32_t* src = (uint32_t*)spry_bufferVid[active_line];
+    uint32_t* src = (uint32_t*)spry_bufferVid[line];
     uint32_t* lineEnd = src + (spry_bufferWidth / 4);
     while (src < lineEnd) {
         uint32_t bytes = *(src++);
@@ -313,7 +324,7 @@ int main(void) {
 
     // Register scanline callback
     spry_initPalette();
-    video_output_set_scanline_callback(scanline_callback_tom);
+    video_output_set_scanline_callback(scanline_callback);
 
     spry_initCopyBuffer();
     video_output_set_vsync_callback(spry_vsyncCallback);

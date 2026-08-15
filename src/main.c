@@ -282,6 +282,9 @@ void spry_prepClock(void) {
     tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
+char spry_text[0x100] = {'[', 't', 'y', 'p', 'e', ']', 0};
+int spry_textIndex = 0;
+
 int main(void) {
     spry_prepClock();
     stdio_init_all();
@@ -383,8 +386,19 @@ int main(void) {
             };
             int stepColor = 1;
             int row = 0;
+            int c = input_getchar();
+            if (c >= 32 && spry_textIndex < sizeof(spry_text) - 1) {
+                spry_text[spry_textIndex++] = (char)c;
+            } else if (c == 8 && spry_textIndex > 0) {
+                spry_text[--spry_textIndex] = 0;
+            } else if (c == '\n') {
+                int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
+                fontIndex = (fontIndex + 1) % fontsLen;
+                font = spry_fonts[fontIndex];
+            }
             for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
-                const char* message = messages[row % 2];
+                // const char* message = messages[row % 2];
+                const char* message = spry_text;
                 int stepX = font->stepX * (strlen(message) + 1);
                 for (int x = 0; x < spry_bufferWidth; x += stepX) {
                 // for (int x = 0; x < 1; x += stepX) {

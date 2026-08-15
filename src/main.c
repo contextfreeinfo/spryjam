@@ -406,13 +406,14 @@ int main(void) {
                 int fontsLen = sizeof(spry_fonts) / sizeof(*spry_fonts);
                 fontIndex = (fontIndex + 1) % fontsLen;
                 font = spry_fonts[fontIndex];
+            } else if (c != -1) {
+                printf("c: %d\n", c);
             }
             for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
                 // const char* message = messages[row % 2];
                 const char* message = spry_text;
                 int stepX = font->stepX * (strlen(message) + 1);
                 for (int x = 0; x < spry_bufferWidth; x += stepX) {
-                // for (int x = 0; x < 1; x += stepX) {
                     uint8_t color = stepColor + video_frame_count / 60;
                     spry_drawText(&raster, font, message, x, y, color);
                     stepColor += 1;

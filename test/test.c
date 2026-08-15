@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #define rasterSizeX 24
-#define rasterSizeY 24
+#define rasterSizeY 20
 
 uint8_t rasterBytes[rasterSizeY][rasterSizeX] = {0};
 
@@ -11,7 +11,7 @@ spry_Raster raster = {
     .sizeX = rasterSizeX,
     .sizeY = rasterSizeY,
     .stride = rasterSizeX,
-    .bytes = (uint32_t*)rasterBytes,
+    .bytes = (uint8_t*)rasterBytes,
 };
 
 void printRaster(void) {
@@ -26,21 +26,29 @@ void printRaster(void) {
 int main(void) {
     spry_debugDraw = 1;
     printf("rasterBytes: %p\n", rasterBytes);
-    const char* text = "Hi!";
+    const char* text = "Hello!";
     spry_drawText(
         &raster,
         &spry_font7,
         text,
-        0,
-        0,
+        -3,
+        -1,
         0xff
     );
     spry_drawText(
         &raster,
         &spry_font8,
         text,
-        0,
-        8,
+        -3,
+        7,
+        0xff
+    );
+    spry_drawText(
+        &raster,
+        &spry_font8,
+        text,
+        -3,
+        16,
         0xff
     );
     printRaster();

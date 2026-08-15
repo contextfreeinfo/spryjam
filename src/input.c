@@ -78,10 +78,6 @@ void input_key_callback(uint8_t keycode, char ascii, bool pressed, uint8_t modif
 
         // PICO-8: Shift+letter → P8SCII 128-153 (special wide glyphs)
         unsigned char buf_ch = (unsigned char)ascii;
-        if (ascii >= 'A' && ascii <= 'Z' &&
-            (modifiers & (KEYBOARD_MODIFIER_LEFTSHIFT | KEYBOARD_MODIFIER_RIGHTSHIFT))) {
-            buf_ch = 128 + (ascii - 'A');
-        }
         // Buffer printable ASCII + P8SCII, enter, and backspace
         if ((buf_ch >= 32 && buf_ch < 127) || buf_ch >= 128) {
             int next = (char_head + 1) % CHAR_BUF_SIZE;

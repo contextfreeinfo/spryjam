@@ -41,7 +41,7 @@
 
 // Audio configuration
 #define AUDIO_SAMPLE_RATE 48000
-#define TONE_AMPLITUDE 6000
+#define TONE_AMPLITUDE 30
 
 // ============================================================================
 // Animation State
@@ -71,8 +71,7 @@ static int current_melody_length = KOROBEINIKI_LENGTH;
 static int melody_index = 0;
 static int note_frames_remaining = 0;
 
-static void init_sine_table(void)
-{
+static void init_sine_table(void) {
     for (int i = 0; i < SINE_TABLE_SIZE; i++) {
         float angle = (float)i * 2.0F * 3.14159265F / SINE_TABLE_SIZE;
         sine_table[i] = (int16_t)(sinf(angle) * TONE_AMPLITUDE);

@@ -102,6 +102,8 @@ static inline int16_t get_sine_sample(void)
     return s;
 }
 
+bool spry_mute = true;
+
 static void generate_audio(void)
 {
     // Keep the audio queue fed
@@ -109,8 +111,13 @@ static void generate_audio(void)
         audio_sample_t samples[4];
         for (int i = 0; i < 4; i++) {
             int16_t s = get_sine_sample();
-            samples[i].left = s;
-            samples[i].right = s;
+            if (spry_mute) {
+                samples[i].left = 0;
+                samples[i].right = 0;
+            } else {
+                samples[i].left = s;
+                samples[i].right = s;
+            }
         }
 
         hstx_packet_t packet;
@@ -126,8 +133,8 @@ static void generate_audio(void)
 // Scanline Callback (runs on Core 1)
 // ============================================================================
 
-#define spry_bufferWidth 288
-#define spry_bufferHeight 216
+#define spry_bufferWidth 320
+#define spry_bufferHeight 240
 
 uint8_t spry_buffer[spry_bufferHeight][spry_bufferWidth]
     __attribute__((aligned(4))) = {0};
@@ -369,6 +376,30 @@ int main(void) {
         advance_melody();
 #endif
 
+        int c = input_getchar();
+        int modifiers = input_modifiers();
+        uint8_t ctrl =
+            KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL;
+        if (modifiers & ctrl) {
+            if (input_key(HID_KEY_MINUS)) {
+                font = &spry_font7;
+            } else if (input_key(HID_KEY_EQUAL)) {
+                font = &spry_font8;
+            } else if (input_key(HID_KEY_P)) {
+                // This whole mute thing isn't working great.
+                spry_mute = !spry_mute;
+            }
+        } else if (
+            (c >= 32 || c == '\n' || c == '\t') &&
+            spry_textIndex < sizeof(spry_text) - 1
+        ) {
+            spry_text[spry_textIndex++] = (char)c;
+        } else if (c == 8 && spry_textIndex > 0) {
+            spry_text[--spry_textIndex] = 0;
+        } else if (c != -1) {
+            printf("c: %d\n", c);
+        }
+
         // TODO Move to draw function. Call only after framebuffer copy.
         // Animate at 30 fps.
         // TODO Measure drawing time.
@@ -395,26 +426,6 @@ int main(void) {
             };
             int stepColor = 1;
             int row = 0;
-            int c = input_getchar();
-            int modifiers = input_modifiers();
-            uint8_t ctrl =
-                KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL;
-            if (modifiers & ctrl) {
-                if (input_key(HID_KEY_MINUS)) {
-                    font = &spry_font7;
-                } else if (input_key(HID_KEY_EQUAL)) {
-                    font = &spry_font8;
-                }
-            } else if (
-                (c >= 32 || c == '\n' || c == '\t') &&
-                spry_textIndex < sizeof(spry_text) - 1
-            ) {
-                spry_text[spry_textIndex++] = (char)c;
-            } else if (c == 8 && spry_textIndex > 0) {
-                spry_text[--spry_textIndex] = 0;
-            } else if (c != -1) {
-                printf("c: %d\n", c);
-            }
             char* message = spry_text;
             int y = 0;
             while (true) {
@@ -470,19 +481,19 @@ int main(void) {
             }
         }
 
-        // Input.
-        int c = stdio_getchar_timeout_us(0);
-        if (c != PICO_ERROR_TIMEOUT) {
-            spry_debugDraw = 4;
-            printf(
-                "Key: %d %zu %p\n",
-                c, sizeof(spry_buffer), spry_buffer
-            );
-            // absolute_time_t start = get_absolute_time();
-            // spini(10000000, 1);
-            // int64_t diff = absolute_time_diff_us(start, get_absolute_time());
-            // printf("Time: %f\n", diff * 1e-6);
-        }
+        // // Input.
+        // int ct = stdio_getchar_timeout_us(0);
+        // if (ct != PICO_ERROR_TIMEOUT) {
+        //     spry_debugDraw = 4;
+        //     printf(
+        //         "Key: %d %zu %p\n",
+        //         ct, sizeof(spry_buffer), spry_buffer
+        //     );
+        //     // absolute_time_t start = get_absolute_time();
+        //     // spini(10000000, 1);
+        //     // int64_t diff = absolute_time_diff_us(start, get_absolute_time());
+        //     // printf("Time: %f\n", diff * 1e-6);
+        // }
     }
 
     return 0;

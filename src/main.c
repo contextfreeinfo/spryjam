@@ -27,6 +27,9 @@
 // Configuration
 // ============================================================================
 
+// Screen blanks out in this mode. TODO Why???
+// #define BOUNCING_BOX_DVI_ONLY
+
 #ifdef VIDEO_MODE_1280x720
 #define FRAME_WIDTH 1280
 #define FRAME_HEIGHT 720
@@ -132,6 +135,11 @@ static void generate_audio(void)
 // ============================================================================
 // Scanline Callback (runs on Core 1)
 // ============================================================================
+
+// Inset by 5% each side because overscan? 216 also scales into 1080.
+// But SNES is 224.
+// #define spry_bufferWidth 288
+// #define spry_bufferHeight 216
 
 #define spry_bufferWidth 320
 #define spry_bufferHeight 240
@@ -299,7 +307,7 @@ void spry_prepClock(void) {
     tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
-char spry_text[0x100] = {0};
+char spry_text[0xffff] = {0};
 int spry_textIndex = 0;
 
 int main(void) {
@@ -387,6 +395,7 @@ int main(void) {
                 font = &spry_font8;
             } else if (input_key(HID_KEY_P)) {
                 // This whole mute thing isn't working great.
+                // TODO Probably need events even with ctrl.
                 spry_mute = !spry_mute;
             }
         } else if (
@@ -481,19 +490,20 @@ int main(void) {
             }
         }
 
-        // // Input.
-        // int ct = stdio_getchar_timeout_us(0);
-        // if (ct != PICO_ERROR_TIMEOUT) {
-        //     spry_debugDraw = 4;
-        //     printf(
-        //         "Key: %d %zu %p\n",
-        //         ct, sizeof(spry_buffer), spry_buffer
-        //     );
-        //     // absolute_time_t start = get_absolute_time();
-        //     // spini(10000000, 1);
-        //     // int64_t diff = absolute_time_diff_us(start, get_absolute_time());
-        //     // printf("Time: %f\n", diff * 1e-6);
-        // }
+        // Input.
+        int ct = stdio_getchar_timeout_us(0);
+        if (ct != PICO_ERROR_TIMEOUT) {
+            spry_debugDraw = 4;
+            printf(
+                "Key: %d %zu %p\n",
+                ct, sizeof(spry_buffer), spry_buffer
+            );
+            absolute_time_t start = get_absolute_time();
+            // spini(10000000, 1);
+            memmove(spry_text, spry_text + 1, sizeof(spry_text) - 1);
+            int64_t diff = absolute_time_diff_us(start, get_absolute_time());
+            printf("Time: %f\n", diff * 1e-6);
+        }
     }
 
     return 0;

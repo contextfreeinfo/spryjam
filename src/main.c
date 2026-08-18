@@ -22,6 +22,9 @@
 #include "draw.h"
 #include "font.h"
 #include "input.h"
+#include "mem.h"
+
+#include <psram.h>
 
 // ============================================================================
 // Configuration
@@ -307,7 +310,6 @@ void spry_prepClock(void) {
     tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
-char spry_text[0xffff] = {0};
 int spry_textIndex = 0;
 
 int main(void) {
@@ -335,6 +337,10 @@ int main(void) {
 #ifdef BOUNCING_BOX_DVI_ONLY
     video_output_set_dvi_mode(true);
 #endif
+
+    size_t psramSize = setup_psram();
+    memset(spry_exMem->text, 0, sizeof(spry_exMem->text));
+    uint8_t* spry_text = spry_exMem->text;
 
     // Register scanline callback
     spry_initPalette();
@@ -415,7 +421,7 @@ int main(void) {
             }
         } else if (
             (c >= 32 || c == '\n' || c == '\t') &&
-            spry_textIndex < sizeof(spry_text) - 1
+            spry_textIndex < spry_textSize - 1
         ) {
             spry_text[spry_textIndex++] = (char)c;
         } else if (c == 8 && spry_textIndex > 0) {
@@ -504,13 +510,14 @@ int main(void) {
                 uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
                 uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
                 printf(
-                    "Blink %d at %d: %f / %f, %d vs %d, %d\n",
+                    "Blink %d at %d: %f / %f, %d vs %d, %zu, %d\n",
                     blinkCount,
                     video_frame_count,
                     lineCompute,
                     linePeriod,
                     static_ram_used,
                     ramText + ramData + ramBss,
+                    psramSize,
                     drawTime
                 );
                 blinkCount += 1;
@@ -527,7 +534,10 @@ int main(void) {
             );
             absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);
-            memmove(spry_text, spry_text + 1, sizeof(spry_text) - 1);
+            memmove(spry_text, spry_text + 1, spry_textSize - 1);
+            if (spry_textIndex) {
+                spry_textIndex -= 1;
+            }
             int64_t diff = absolute_time_diff_us(start, get_absolute_time());
             printf("Time: %f\n", diff * 1e-6);
         }

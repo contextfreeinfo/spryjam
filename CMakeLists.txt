@@ -32,6 +32,7 @@ add_executable(spryjam
 
 target_include_directories(spryjam PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/wili8jam
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/wili8jam/src
 )
 
 # target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)

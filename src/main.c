@@ -364,6 +364,21 @@ int main(void) {
     };
     spry_Font* font = &spry_font8;
 
+    if (false) {
+        // Test chars for a filled screen.
+        char loopC = 'M';
+        for (int i = 0, ci = 0; i < 30; i += 1) {
+            for (int j = 0; j < 64; j += 1, ci += 1) {
+                spry_text[ci] = loopC;
+            }
+            spry_text[ci++] = '\n';
+        }
+        loopC += 1;
+        if (loopC > 126) {
+            loopC = ' ';
+        }
+    }
+
     while (1) {
 #ifndef BOUNCING_BOX_DVI_ONLY
         // Keep audio buffer fed
@@ -414,6 +429,15 @@ int main(void) {
         // TODO Measure drawing time.
         int drawTime = 0;
         if ((video_frame_count % 1) == 0) {
+            float offsetX = 0;
+            float offsetY = 0;
+            if (false) {
+                // Test animation for fun.
+                float t = video_frame_count * 0.05;
+                float mag = 20.0;
+                float offsetX = cos(t) * mag;
+                float offsetY = sin(t) * mag;
+            }
             absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
             memset(spry_buffer, 0x49, sizeof(spry_buffer));
@@ -441,8 +465,11 @@ int main(void) {
                 char* lineEnd = strchr(message, '\n');
                 bool done = !lineEnd;
                 if (done) lineEnd = message + strlen(message);
+                int lineLength = lineEnd - message;
+                int drawX = offsetX;
+                int drawY = y + offsetY;
                 spry_drawText(
-                    &raster, font, message, lineEnd - message, 0, y, 0xb6
+                    &raster, font, message, lineLength, drawX, drawY, 0xb6
                 );
                 if (done) break;
                 message = lineEnd + 1;

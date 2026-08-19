@@ -23,8 +23,9 @@
 #include "font.h"
 #include "input.h"
 #include "mem.h"
+#include "sdcard.h"
 
-#include <psram.h>
+#include <wili8jam/src/psram.h>
 
 // ============================================================================
 // Configuration
@@ -536,10 +537,13 @@ int main(void) {
             );
             absolute_time_t start = get_absolute_time();
             // spini(10000000, 1);
-            memmove(spry_text, spry_text + 1, spry_textSize - 1);
-            if (spry_textIndex) {
-                spry_textIndex -= 1;
-            }
+            // Text copy test.
+            // memmove(spry_text, spry_text + 1, spry_textSize - 1);
+            // if (spry_textIndex) {
+            //     spry_textIndex -= 1;
+            // }
+            // SD card test.
+            spry_sdListRoot();
             int64_t diff = absolute_time_diff_us(start, get_absolute_time());
             printf("Time: %f\n", diff * 1e-6);
         }

@@ -25,14 +25,14 @@ add_executable(spryjam
     src/draw.c
     src/input.c
     src/input-cpp.cpp
+    src/sdcard.c
     # TinyUSB host stack — must be compiled in the executable (not fwUSBHost lib)
     # to avoid duplicate symbols with the device stack from pico_stdio_usb
     ${FWUSBHOST_TINYUSB_HOST_SOURCES}
 )
 
 target_include_directories(spryjam PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/wili8jam
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/wili8jam/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
 # target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)
@@ -50,6 +50,7 @@ target_link_libraries(spryjam
     hardware_dma
     hardware_irq
     hardware_pio
+    no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
     pico_hdmi
     pico_multicore
     pico_stdlib

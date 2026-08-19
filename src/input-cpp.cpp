@@ -1,5 +1,5 @@
 #include "input.h"
-#include "usb-host/fwUSBHost.h"
+#include <wili8jam/usb-host/fwUSBHost.h>
 
 extern fwUSBHost obUSBHost;
 

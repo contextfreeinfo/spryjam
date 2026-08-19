@@ -311,6 +311,7 @@ void spry_prepClock(void) {
 }
 
 int spry_textIndex = 0;
+uint8_t spry_userSram[256 << 10] = {0};
 
 int main(void) {
     spry_prepClock();
@@ -446,6 +447,7 @@ int main(void) {
             }
             absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
+            spry_userSram[0] += 1;
             memset(spry_buffer, 0x49, sizeof(spry_buffer));
             // for (int y = 0; y < spry_bufferHeight; y += 1) {
             //     int x = (y + spry_bufferWidth + offset) % spry_bufferWidth;

@@ -29,10 +29,15 @@ typedef struct spry_Settings {
 } spry_Settings;
 
 typedef struct spry_ExMem {
+    // TODO 1 MB ram disk with settings inside. Also clipboard.
+    // Make it a key/value store with per-app ownership and R/W permissions.
     spry_Settings settings;
+
+    // TODO Binary code goes in user space.
 
     // TODO Unions for different modes?
     // TODO Dev other apps, like sprite editor, within spry?
+    // TODO Text editor needs to be just another app.
     spry_TextEditor textEditor;
 
     // TODO Built code region.

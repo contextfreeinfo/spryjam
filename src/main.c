@@ -314,6 +314,7 @@ void spry_prepClock(void) {
 
 int spry_textIndex = 0;
 uint8_t spry_userSram[256 << 10] = {0};
+uint8_t* spry_text = spry_userSram;
 
 int main(void) {
     spry_prepClock();
@@ -343,7 +344,7 @@ int main(void) {
 
     size_t psramSize = setup_psram();
     spry_initAllMem();
-    uint8_t* spry_text = spry_exMem->textEditor.text;
+    // uint8_t* spry_text = spry_exMem->textEditor.text;
 
     // Register scanline callback
     spry_initPalette();
@@ -449,7 +450,7 @@ int main(void) {
             }
             absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
-            spry_userSram[0] += 1;
+            // spry_userSram[0] += 1;
             memset(spry_buffer, 0x49, sizeof(spry_buffer));
             // for (int y = 0; y < spry_bufferHeight; y += 1) {
             //     int x = (y + spry_bufferWidth + offset) % spry_bufferWidth;
@@ -468,35 +469,25 @@ int main(void) {
                 "THE FIVE BOXING WIZARDS JUMP QUICKLY. 0!1@2#3$4%5^6&7*8(9)+<=>,?",
             };
             int stepColor = 1;
-            int row = 0;
-            char* message = spry_text;
-            int y = 0;
             spry_Font* font = spry_exMem->settings.font;
-            while (true) {
-                char* lineEnd = strchr(message, '\n');
-                bool done = !lineEnd;
-                if (done) lineEnd = message + strlen(message);
-                int lineLength = lineEnd - message;
-                int drawX = offsetX;
-                int drawY = y + offsetY;
-                spry_drawText(
-                    &raster, font, message, lineLength, drawX, drawY, 0xb6
-                );
-                if (done) break;
-                message = lineEnd + 1;
-                y += font->stepY;
-            }
-            // for (int y = 0; y < spry_bufferHeight; y += font->stepY) {
-            //     // const char* message = messages[row % 2];
-            //     const char* message = spry_text;
-            //     int stepX = font->stepX * (strlen(message) + 1);
-            //     for (int x = 0; x < spry_bufferWidth; x += stepX) {
-            //         uint8_t color = stepColor + video_frame_count / 60;
-            //         spry_drawText(&raster, font, message, strlen(message), x, y, color);
-            //         stepColor += 1;
-            //     }
-            //     row += 1;
-            // }
+            for (int n = 0; n < 1; n += 1) { // Inc loop for stress test.
+                char* message = spry_text;
+                int y = 0;
+                while (true) {
+                    char* lineEnd = strchr(message, '\n');
+                    bool done = !lineEnd;
+                    if (done) lineEnd = message + strlen(message);
+                    int lineLength = lineEnd - message;
+                    int drawX = offsetX;
+                    int drawY = y + offsetY;
+                    spry_drawText(
+                        &raster, font, message, lineLength, drawX, drawY, 0xb6
+                    );
+                    if (done) break;
+                    message = lineEnd + 1;
+                    y += font->stepY;
+                }
+            } // end stress test
             drawTime = absolute_time_diff_us(start, get_absolute_time());
             if (spry_debugDraw > 0) {
                 spry_debugDraw -= 1;

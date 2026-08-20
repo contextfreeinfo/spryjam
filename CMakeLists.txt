@@ -37,6 +37,8 @@ target_include_directories(spryjam PRIVATE
 
 # target_compile_definitions(spryjam PRIVATE VIDEO_MODE_1280x720)
 # target_compile_definitions(pico_hdmi PRIVATE VIDEO_MODE_1280x720)
+target_compile_definitions(spryjam PRIVATE MODE_HSTX_CLK_DIV=2)
+target_compile_definitions(pico_hdmi PRIVATE MODE_HSTX_CLK_DIV=2)
 
 # 720p overclocks sys_clk to 372 MHz, at which XIP flash reads corrupt (the
 # boot-clock QMI timing no longer samples correctly) and the core hard-faults.

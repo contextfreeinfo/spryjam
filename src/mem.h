@@ -3,7 +3,10 @@
 #define spry_psramBase 0x11000000
 #define spry_psramSize (8 << 20)
 
-#define spry_textSize (32 << 10) // 5.5 ms to move all
+// Under 4.3 ms to move all.
+// Under 4.2 ms to draw a full screen at 4x7 font size.
+// Under 8.5 ms worst case so far. Leaves 8 ms of frame budget.
+#define spry_textSize (32 << 10)
 
 // TODO typedef struct spry_Mem
 

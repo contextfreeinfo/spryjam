@@ -296,7 +296,8 @@ void spry_prepClock(void) {
     set_sys_clock_khz(372000, true);
 #else
     // 480p60: set system clock to 126 MHz for HSTX timing (25.2 MHz pixel clock).
-    set_sys_clock_khz(126000, true);
+    // Except double-clock for speed, and set MODE_HSTX_CLK_DIV=2 in build.
+    set_sys_clock_khz(252000, true);
 #endif
 
     // Enable 5V VBUS power to USB-A host port (GPIO 11 controls power switch)
@@ -536,14 +537,20 @@ int main(void) {
                 ct, sizeof(spry_buffer), spry_buffer
             );
             absolute_time_t start = get_absolute_time();
-            // spini(10000000, 1);
-            // Text copy test.
-            // memmove(spry_text, spry_text + 1, spry_textSize - 1);
-            // if (spry_textIndex) {
-            //     spry_textIndex -= 1;
-            // }
-            // SD card test.
-            spry_sdListRoot();
+            switch (ct) {
+                case 'f':
+                    spry_sdListRoot();
+                    break;
+                case 'm':
+                    memmove(spry_text, spry_text + 1, spry_textSize - 1);
+                    if (spry_textIndex) {
+                        spry_textIndex -= 1;
+                    }
+                    break;
+                case 's':
+                    spini(10000000, 1);
+                    break;
+            }
             int64_t diff = absolute_time_diff_us(start, get_absolute_time());
             printf("Time: %f\n", diff * 1e-6);
         }

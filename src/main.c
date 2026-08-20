@@ -342,8 +342,8 @@ int main(void) {
 #endif
 
     size_t psramSize = setup_psram();
-    memset(spry_exMem->text, 0, sizeof(spry_exMem->text));
-    uint8_t* spry_text = spry_exMem->text;
+    spry_initAllMem();
+    uint8_t* spry_text = spry_exMem->textEditor.text;
 
     // Register scanline callback
     spry_initPalette();
@@ -371,7 +371,6 @@ int main(void) {
         .stride = spry_bufferWidth,
         .bytes = (uint8_t*)spry_buffer,
     };
-    spry_Font* font = &spry_font8;
 
     if (false) {
         // Test chars for a filled screen.
@@ -415,9 +414,9 @@ int main(void) {
             KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL;
         if (modifiers & ctrl) {
             if (c == '-' || c == '_') {
-                font = &spry_font7;
+                spry_exMem->settings.font = &spry_font7;
             } else if (c == '+' || c == '=') {
-                font = &spry_font8;
+                spry_exMem->settings.font = &spry_font8;
             } else if (c == 'p' || c == 'P') {
                 // This whole mute thing isn't working great.
                 // TODO Probably need events even with ctrl.
@@ -472,6 +471,7 @@ int main(void) {
             int row = 0;
             char* message = spry_text;
             int y = 0;
+            spry_Font* font = spry_exMem->settings.font;
             while (true) {
                 char* lineEnd = strchr(message, '\n');
                 bool done = !lineEnd;

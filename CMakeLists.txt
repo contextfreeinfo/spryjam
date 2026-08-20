@@ -23,9 +23,12 @@ add_subdirectory(lib/wili8jam/usb-host)
 add_executable(spryjam
     src/main.c
     src/draw.c
+    src/font.c
     src/input.c
     src/input-cpp.cpp
+    src/mem.c
     src/sdcard.c
+    src/text.c
     # TinyUSB host stack — must be compiled in the executable (not fwUSBHost lib)
     # to avoid duplicate symbols with the device stack from pico_stdio_usb
     ${FWUSBHOST_TINYUSB_HOST_SOURCES}

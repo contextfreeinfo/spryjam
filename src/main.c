@@ -410,14 +410,15 @@ int main(void) {
 
         int c = input_getchar();
         int modifiers = input_modifiers();
+        // TODO Get ctrl on buffered events themselves?
         uint8_t ctrl =
             KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL;
         if (modifiers & ctrl) {
-            if (input_key(HID_KEY_MINUS)) {
+            if (c == '-' || c == '_') {
                 font = &spry_font7;
-            } else if (input_key(HID_KEY_EQUAL)) {
+            } else if (c == '+' || c == '=') {
                 font = &spry_font8;
-            } else if (input_key(HID_KEY_P)) {
+            } else if (c == 'p' || c == 'P') {
                 // This whole mute thing isn't working great.
                 // TODO Probably need events even with ctrl.
                 spry_mute = !spry_mute;

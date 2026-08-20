@@ -6,6 +6,7 @@ static uint8_t key_state[32];
 static uint8_t key_prev[32];
 
 // Character input ring buffer for REPL keyboard input
+// TODO Buffer chars with their current modifiers? In psram?
 #define CHAR_BUF_SIZE 64
 static char char_buf[CHAR_BUF_SIZE];
 static volatile int char_head = 0;
@@ -76,9 +77,9 @@ void input_key_callback(uint8_t keycode, char ascii, bool pressed, uint8_t modif
     if (pressed) {
         key_set(key_state, keycode);
 
-        // Don't buffer chars when Ctrl is held (editor handles Ctrl combos via keycodes)
-        bool ctrl = modifiers & (KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL);
-        if (ctrl) return;
+        // // Don't buffer chars when Ctrl is held (editor handles Ctrl combos via keycodes)
+        // bool ctrl = modifiers & (KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL);
+        // if (ctrl) return;
 
         // PICO-8: Shift+letter → P8SCII 128-153 (special wide glyphs)
         unsigned char buf_ch = (unsigned char)ascii;

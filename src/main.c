@@ -23,6 +23,7 @@
 #include "font.h"
 #include "input.h"
 #include "mem.h"
+#include "run.h"
 #include "sdcard.h"
 
 #include <wili8jam/src/psram.h>
@@ -386,6 +387,26 @@ int main(void) {
         if (loopC > 126) {
             loopC = ' ';
         }
+    } else {
+        const char* defaultText =
+            "# Well, technically does more than greet, but meh.\n"
+            "greet :: proc()\n"
+            "  log(\"Hi there!\")\n"
+            "  log(\"Bye now!\")\n"
+            "end\n"
+            "\n"
+            "# Just to prove nested and repeated calls work.\n"
+            "greetTwice :: proc()\n"
+            "  greet()\n"
+            "  greet()\n"
+            "end\n"
+            "\n"
+            "# Main naturally goes last.\n"
+            "main :: proc()\n"
+            "  greetTwice()\n"
+            "end\n";
+        spry_textIndex = strlen(defaultText);
+        memcpy(spry_text, defaultText, spry_textIndex);
     }
 
     while (1) {
@@ -538,6 +559,9 @@ int main(void) {
                     if (spry_textIndex) {
                         spry_textIndex -= 1;
                     }
+                    break;
+                case 'r':
+                    spry_run(spry_text, spry_textIndex);
                     break;
                 case 's':
                     spini(10000000, 1);

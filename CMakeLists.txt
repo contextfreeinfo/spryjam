@@ -14,6 +14,7 @@ pico_sdk_init()
 
 add_subdirectory(lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
 add_subdirectory(lib/pico_hdmi)
+include(lib/rio/library.cmake)
 
 # From wili8jam.
 # --- USB Host library (PIO-USB, HID, XInput, CDC, MSC) ---
@@ -27,6 +28,7 @@ add_executable(spryjam
     src/input.c
     src/input-cpp.cpp
     src/mem.c
+    src/run.c
     src/sdcard.c
     src/text.c
     # TinyUSB host stack — must be compiled in the executable (not fwUSBHost lib)
@@ -59,6 +61,7 @@ target_link_libraries(spryjam
     pico_hdmi
     pico_multicore
     pico_stdlib
+    rio-lib
 )
 
 target_compile_definitions(spryjam PRIVATE

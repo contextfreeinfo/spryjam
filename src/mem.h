@@ -2,6 +2,7 @@
 
 #include "font.h"
 #include "text.h"
+#include "run.h"
 
 #define spry_psramBase 0x11000000
 #define spry_psramSize (8 << 20)
@@ -33,7 +34,7 @@ typedef struct spry_ExMem {
     // Make it a key/value store with per-app ownership and R/W permissions.
     spry_Settings settings;
 
-    // TODO Binary code goes in user space.
+    spry_RunState runState;
 
     // TODO Unions for different modes?
     // TODO Dev other apps, like sprite editor, within spry?

@@ -4,6 +4,20 @@
 cp spryjam.uf2 /media/tom/RP2350/
 ```
 
+Compile and run test, sadly slow right now:
+
+```
+Key: 114 76800 20014958
+runState 11000004 size 3342336
+Hi there!
+Bye now!
+Hi there!
+Bye now!
+Time: 0.443434
+```
+
+Other/older test:
+
 ```
 Key: 105 76800 2000C6C0 2000C6C0 20001188 20001188
 Hi there!: 80

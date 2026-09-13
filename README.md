@@ -4,16 +4,16 @@
 cp spryjam.uf2 /media/tom/RP2350/
 ```
 
-Compile and run test, sadly slow right now:
+Compile and run test, much faster in sram with smaller buffers:
 
 ```
 Key: 114 76800 20014958
-runState 11000004 size 3342336
+runState 2005A364 size 102400
 Hi there!
 Bye now!
 Hi there!
 Bye now!
-Time: 0.443434
+Time: 0.000720
 ```
 
 Other/older test:

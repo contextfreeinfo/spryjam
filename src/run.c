@@ -3,21 +3,24 @@
 #include "run.h"
 #include "mem.h"
 
+spry_RunState sramRunState;
+
 int spry_run(const char* text, size_t textSize) {
-    spry_RunState* runState = &spry_exMem->runState;
+    spry_RunState* runState = &sramRunState;
+    // spry_RunState* runState = &spry_exMem->runState;
     printf("runState %p size %zu\n", runState, sizeof(spry_RunState));
     memset(runState, 0, sizeof(spry_RunState));
     rio_Engine engine = {
         .code = {
-            .span = {.size = rio_codeSize, .items = runState->codeBytes},
+            .span = {.size = spry_rio_codeSize, .items = runState->codeBytes},
             // Use up each first word so nil pointers aren't useful.
             .used = rio_ptrSize,
         },
         .data = {
-            .span = {.size = rio_dataSize, .items = runState->dataBytes},
+            .span = {.size = spry_rio_dataSize, .items = runState->dataBytes},
             .used = rio_ptrSize,
         },
-        .defs = {{.size = rio_defsSize, .items = runState->defs}, .used = 1},
+        .defs = {{.size = spry_rio_defsSize, .items = runState->defs}, .used = 1},
     };
     engine.memory = engine.data;
     rio_Buffer_Byte file = {
@@ -32,11 +35,11 @@ int spry_run(const char* text, size_t textSize) {
         .lexer = {.file = &file},
         .names = {
             .starts = {
-                .size = rio_nameStartsSize,
+                .size = spry_rio_nameStartsSize,
                 .items = runState->nameStarts,
             },
             .strings = {
-                .span = {.size = rio_namesSize, .items = runState->namesBytes},
+                .span = {.size = spry_rio_namesSize, .items = runState->namesBytes},
                 // This makes index 0 always be an invalid empty name.
                 .used = 2,
             },

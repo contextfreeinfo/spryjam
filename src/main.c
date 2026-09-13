@@ -314,7 +314,7 @@ void spry_prepClock(void) {
 }
 
 int spry_textIndex = 0;
-uint8_t spry_userSram[256 << 10] = {0};
+uint8_t spry_userSram[128 << 10] = {0};
 uint8_t* spry_text = spry_userSram;
 
 int main(void) {

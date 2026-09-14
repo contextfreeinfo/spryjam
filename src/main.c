@@ -404,6 +404,7 @@ int main(void) {
             "# Main naturally goes last.\n"
             "main :: proc()\n"
             "  greetTwice()\n"
+            "  log(\"Really now.\")\n"
             "end\n";
         spry_textIndex = strlen(defaultText);
         memcpy(spry_text, defaultText, spry_textIndex);

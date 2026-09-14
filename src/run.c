@@ -52,7 +52,7 @@ int spry_run(const char* text, size_t textSize) {
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
         .constant = true,
-        .ptrVal = (intptr_t)rio_log,
+        .ptrVal = (intptr_t)rio_runLog,
     });
     rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
     if (rio_verbosity) {
@@ -74,10 +74,6 @@ rio_Err rio_close(rio_File file) {
     rio_Buffer_Byte* bytes = file;
     bytes->used = bytes->span.size;
     return 0;
-}
-
-rio_Err rio_log(const char* message) {
-    printf("%s\n", message);
 }
 
 rio_Err rio_read(rio_File file, uint8_t* c) {

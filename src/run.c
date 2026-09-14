@@ -5,12 +5,17 @@
 
 spry_RunState sramRunState;
 
+// Make these global to reduce stack usage.
+static rio_Engine engine;
+static rio_Parser parser;
+
 int spry_run(const char* text, size_t textSize) {
     spry_RunState* runState = &sramRunState;
     // spry_RunState* runState = &spry_exMem->runState;
     printf("runState %p size %zu\n", runState, sizeof(spry_RunState));
-    memset(runState, 0, sizeof(spry_RunState));
-    rio_Engine engine = {
+    // Clear shouldn't be needed, and it takes maybe 200 us or so.
+    // memset(runState, 0, sizeof(spry_RunState));
+    engine = (rio_Engine){
         .code = {
             .span = {.size = spry_rio_codeSize, .items = runState->codeBytes},
             // Use up each first word so nil pointers aren't useful.
@@ -29,7 +34,7 @@ int spry_run(const char* text, size_t textSize) {
         // Here `used` tracks our read position.
         .used = 0,
     };
-    rio_Parser parser = {
+    parser = (rio_Parser){
         .engine = &engine,
         .gen = {.code = &engine.code},
         .lexer = {.file = &file},

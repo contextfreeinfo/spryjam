@@ -25,7 +25,10 @@ int spry_run(const char* text, size_t textSize) {
             .span = {.size = spry_rio_dataSize, .items = runState->dataBytes},
             .used = rio_ptrSize,
         },
-        .defs = {{.size = spry_rio_defsSize, .items = runState->defs}, .used = 1},
+        .defs = {
+            .span = {.size = spry_rio_defsSize, .items = runState->work.defs},
+            .used = 1,
+        },
     };
     engine.memory = engine.data;
     rio_Buffer_Byte file = {
@@ -41,10 +44,13 @@ int spry_run(const char* text, size_t textSize) {
         .names = {
             .starts = {
                 .size = spry_rio_nameStartsSize,
-                .items = runState->nameStarts,
+                .items = runState->work.nameStarts,
             },
             .strings = {
-                .span = {.size = spry_rio_namesSize, .items = runState->namesBytes},
+                .span = {
+                    .size = spry_rio_namesSize,
+                    .items = runState->work.namesBytes,
+                },
                 // This makes index 0 always be an invalid empty name.
                 .used = 2,
             },
@@ -72,6 +78,13 @@ int spry_run(const char* text, size_t textSize) {
         }
         codeMain();
     }
+    printf(
+        "size %zu, data %zu, zero %zu, work %zu\n",
+        sizeof(spry_RunState),
+        offsetof(spry_RunState, dataBytes),
+        offsetof(spry_RunState, zeroBytes),
+        offsetof(spry_RunState, work.namesBytes)
+    );
     return err;
 }
 

@@ -313,9 +313,10 @@ void spry_prepClock(void) {
     tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 }
 
+// TODO These later will be in the data section of an app.
 int spry_textIndex = 0;
-uint8_t spry_userSram[128 << 10] = {0};
-uint8_t* spry_text = spry_userSram;
+uint8_t spry_textBuffer[32 << 10] = {0};
+uint8_t* spry_text = spry_textBuffer;
 
 int main(void) {
     spry_prepClock();
@@ -472,7 +473,6 @@ int main(void) {
             }
             absolute_time_t start = get_absolute_time();
             int offset = video_frame_count % spry_bufferWidth;
-            // spry_userSram[0] += 1;
             memset(spry_buffer, 0x49, sizeof(spry_buffer));
             // for (int y = 0; y < spry_bufferHeight; y += 1) {
             //     int x = (y + spry_bufferWidth + offset) % spry_bufferWidth;
@@ -520,26 +520,26 @@ int main(void) {
         if ((video_frame_count % 30) == 0) {
             led_state = !led_state;
             gpio_put(PICO_DEFAULT_LED_PIN, led_state);
-            if (led_state) {
-                uint32_t ramStart = 0x20000000;
-                uint32_t static_ram_used = (uint32_t)__end__ - ramStart;
-                uint32_t ramText = 0;
-                // (uint32_t)(__ram_text_end__ - __ram_text_start__);
-                uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
-                uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
-                printf(
-                    "Blink %d at %d: %f / %f, %d vs %d, %zu, %d\n",
-                    blinkCount,
-                    video_frame_count,
-                    lineCompute,
-                    linePeriod,
-                    static_ram_used,
-                    ramText + ramData + ramBss,
-                    psramSize,
-                    drawTime
-                );
-                blinkCount += 1;
-            }
+            // if (led_state) {
+            //     uint32_t ramStart = 0x20000000;
+            //     uint32_t static_ram_used = (uint32_t)__end__ - ramStart;
+            //     uint32_t ramText = 0;
+            //     // (uint32_t)(__ram_text_end__ - __ram_text_start__);
+            //     uint32_t ramData = (uint32_t)(__data_end__ - __data_start__);
+            //     uint32_t ramBss = (uint32_t)(__bss_end__ - __bss_start__);
+            //     printf(
+            //         "Blink %d at %d: %f / %f, %d vs %d, %zu, %d\n",
+            //         blinkCount,
+            //         video_frame_count,
+            //         lineCompute,
+            //         linePeriod,
+            //         static_ram_used,
+            //         ramText + ramData + ramBss,
+            //         psramSize,
+            //         drawTime
+            //     );
+            //     blinkCount += 1;
+            // }
         }
 
         // Input.

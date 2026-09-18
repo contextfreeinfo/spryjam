@@ -13,8 +13,6 @@ int spry_run(const char* text, size_t textSize) {
     spry_RunState* runState = &sramRunState;
     // spry_RunState* runState = &spry_exMem->runState;
     printf("runState %p size %zu\n", runState, sizeof(spry_RunState));
-    // Clear shouldn't be needed, and it takes maybe 200 us or so.
-    // memset(runState, 0, sizeof(spry_RunState));
     engine = (rio_Engine){
         .code = {
             .span = {.size = spry_rio_codeSize, .items = runState->codeBytes},
@@ -69,8 +67,11 @@ int spry_run(const char* text, size_t textSize) {
     if (rio_verbosity) {
         printf("log fun %d at %p\n", logDef.name, (void*)logDef.ptrVal);
     }
-    // Parse/process.
+    // Parse.
     rio_Err err = rio_parse(&parser);
+    // Zero out zero space *after* compiling. This costs a few hundred ms.
+    // TODO Track exactly how much to zero, which might be more or less?
+    memset(runState->zeroBytes, 0, sizeof(runState->zeroBytes));
     if (engine.main) {
         void (*codeMain)(void) = (void (*)(void))engine.main;
         if (rio_verbosity) {

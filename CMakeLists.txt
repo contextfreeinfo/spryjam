@@ -68,6 +68,12 @@ target_compile_definitions(spryjam PRIVATE
     PICO_STACK_SIZE=0x1000
     # PicoHDMI uses lots of scratch_x, so that impacts stack options.
     PICO_CORE1_STACK_SIZE=0x800
+    # PICO_CRT0_ALLOCATE_SPACERS=0
+)
+
+target_compile_options(spryjam PRIVATE
+    # -Wall -Wextra -Wpedantic -pedantic-errors -Werror
+    -fstack-usage
 )
 
 # Enable USB output, disable UART

@@ -319,6 +319,7 @@ uint8_t spry_textBuffer[32 << 10] = {0};
 uint8_t* spry_text = spry_textBuffer;
 
 int main(void) {
+    rio_initStackCheck(3072);
     spry_prepClock();
     stdio_init_all();
     spry_initInput();
@@ -563,6 +564,10 @@ int main(void) {
                     break;
                 case 'r':
                     spry_run(spry_text, spry_textIndex);
+                    printf(
+                        "Max stack: 0x%zx %zd\n",
+                        rio_deepestStackSeen(), rio_maxStackDepthSeen()
+                    );
                     break;
                 case 's':
                     spini(10000000, 1);

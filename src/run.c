@@ -10,9 +10,11 @@ static rio_Engine engine;
 static rio_Parser parser;
 
 int spry_run(const char* text, size_t textSize) {
+    rio_Err err;
     spry_RunState* runState = &sramRunState;
     // spry_RunState* runState = &spry_exMem->runState;
     printf("runState %p size %zu\n", runState, sizeof(spry_RunState));
+    uint8_t* zeroEnd = runState->dataBytes + spry_rio_dataSize;
     engine = (rio_Engine){
         .code = {
             .span = {.size = spry_rio_codeSize, .items = runState->codeBytes},
@@ -27,18 +29,6 @@ int spry_run(const char* text, size_t textSize) {
             .span = {.size = spry_rio_defsSize, .items = runState->work.defs},
             .used = 1,
         },
-    };
-    engine.memory = engine.data;
-    rio_Buffer_Byte file = {
-        // Not actually going to write this.
-        .span = { .items = (uint8_t*)text, .size = textSize },
-        // Here `used` tracks our read position.
-        .used = 0,
-    };
-    parser = (rio_Parser){
-        .engine = &engine,
-        .gen = {.code = &engine.code},
-        .lexer = {.file = &file},
         .names = {
             .starts = {
                 .size = spry_rio_nameStartsSize,
@@ -53,11 +43,31 @@ int spry_run(const char* text, size_t textSize) {
                 .used = 2,
             },
         },
+        .types = {
+            .span = {.size = spry_rio_typesSize, .items = runState->work.types},
+            // Give some extra start here for more primitive types.
+            .used = 2 * rio_ptrSize,
+        },
+        .zeroStart = zeroEnd,
+        .zeroEnd = zeroEnd,
+    };
+    engine.memory = engine.data;
+    if ((err = rio_engineInit(&engine))) return err;
+    rio_Buffer_Byte file = {
+        // Not actually going to write this.
+        .span = { .items = (uint8_t*)text, .size = textSize },
+        // Here `used` tracks our read position.
+        .used = 0,
+    };
+    parser = (rio_Parser){
+        .engine = &engine,
+        .gen = {.code = &engine.code},
+        .lexer = {.file = &file},
     };
     // Prefill defs such as `log`.
     // And we know initial defs won't overflow.
-    int32_t logName;
-    rio_table(&parser.names, (rio_Byte*)"log", &logName);
+    rio_Intern logName;
+    rio_table(&engine.names, (rio_Byte*)"log", &logName);
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
         .constant = true,
@@ -68,7 +78,7 @@ int spry_run(const char* text, size_t textSize) {
         printf("log fun %d at %p\n", logDef.name, (void*)logDef.ptrVal);
     }
     // Parse.
-    rio_Err err = rio_parse(&parser);
+    err = rio_parse(&parser);
     // Zero out zero space *after* compiling. This costs a few hundred ms.
     // TODO Track exactly how much to zero, which might be more or less?
     memset(runState->zeroBytes, 0, sizeof(runState->zeroBytes));

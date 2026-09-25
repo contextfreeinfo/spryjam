@@ -70,6 +70,13 @@ section                 size        addr
 Total                 804830
 ```
 
+## Names
+
+rinsca
+rincasi
+rincavi
+spry
+
 ## Some frame timings
 
 ```

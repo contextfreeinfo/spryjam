@@ -391,23 +391,21 @@ int main(void) {
         }
     } else {
         const char* defaultText =
-            "# Well, technically does more than greet, but meh.\n"
-            "greet :: proc()\n"
-            "  log(\"Hi there!\")\n"
+            "# Log the message a given number of times.\n"
+            "loopLog :: proc(message: String, times: Int)\n"
+            "  n := 0\n"
+            "  for n < times\n"
+            "    log(message)\n"
+            "    n += 1\n"
+            "  end\n"
+            "end\n"
+            "\n"
+            "# Greet until we say bye.\n"
+            "main :: proc()\n"
+            "  loopLog(\"Hi there!\", 3)\n"
             "  log(\"Bye now!\")\n"
             "end\n"
-            "\n"
-            "# Just to prove nested and repeated calls work.\n"
-            "greetTwice :: proc()\n"
-            "  greet()\n"
-            "  greet()\n"
-            "end\n"
-            "\n"
-            "# Main naturally goes last.\n"
-            "main :: proc()\n"
-            "  greetTwice()\n"
-            "  log(\"Really now.\")\n"
-            "end\n";
+        ;
         spry_textIndex = strlen(defaultText);
         memcpy(spry_text, defaultText, spry_textIndex);
     }
